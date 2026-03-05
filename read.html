@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Read — Quizzery</title>
+  <link rel="stylesheet" href="/css/shared.css" />
+  <style>
+    /* ── Log reading form ─────────────────────────────────────── */
+    .log-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .log-form h2 {
+      font-size: 1rem;
+      font-weight: normal;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .log-form-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .log-form-notes { margin-bottom: 1rem; }
+
+    /* ── Reading history ──────────────────────────────────────── */
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .history-title {
+      font-size: 1rem;
+      font-weight: normal;
+      color: var(--muted);
+    }
+
+    .reading-count {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .reading-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .reading-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 130px 1fr auto;
+      align-items: start;
+      gap: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: box-shadow 0.15s;
+    }
+
+    .reading-item:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.09); }
+
+    .reading-date {
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding-top: 0.15rem;
+      white-space: nowrap;
+    }
+
+    .reading-body { min-width: 0; }
+
+    .reading-passage {
+      font-size: 1rem;
+      line-height: 1.4;
+      margin-bottom: 0.25rem;
+    }
+
+    .reading-notes {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .reading-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    /* editing state */
+    .reading-item.editing {
+      grid-template-columns: 1fr auto;
+      align-items: start;
+    }
+
+    .edit-form-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .edit-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding-top: 1.75rem;
+    }
+
+    .btn-save-edit { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state p:first-child { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .empty-state p:last-child { font-size: 0.85rem; }
+
+    @media (max-width: 600px) {
+      .reading-item { grid-template-columns: 1fr auto; }
+      .reading-date { display: none; }
+      .log-form-grid { grid-template-columns: 1fr; }
+      .edit-form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Quizzery</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link" data-page="memorize" href="/memorize">Memorize</a>
+      <a class="sidebar-link" data-page="read" href="/read">Read</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="sidebar-username" id="sidebarUser"></span>
+      <button class="btn-logout" id="sidebarLogout">Log out</button>
+    </div>
+  </aside>
+
+  <div class="page-content">
+    <div class="mobile-topbar">
+      <button class="hamburger-btn" id="hamburgerBtn">&#9776;</button>
+      <span class="mobile-topbar-title">Quizzery</span>
+    </div>
+
+    <main class="page-main">
+      <!-- Log a reading form -->
+      <div class="log-form">
+        <h2>Log a Reading</h2>
+        <div class="log-form-grid">
+          <div class="form-group">
+            <label for="readDate">Date</label>
+            <input type="date" id="readDate" />
+          </div>
+          <div class="form-group">
+            <label for="readPassage">Passage</label>
+            <input type="text" id="readPassage" placeholder="e.g. Matthew 5-7" />
+          </div>
+        </div>
+        <div class="log-form-notes form-group">
+          <label for="readNotes">Notes (optional)</label>
+          <textarea id="readNotes" placeholder="Any thoughts or reflections..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" id="saveReadingBtn">Log Reading</button>
+        </div>
+      </div>
+
+      <!-- Reading history -->
+      <div class="history-header">
+        <span class="history-title">Reading History</span>
+        <span class="reading-count" id="readingCount"></span>
+      </div>
+      <div class="reading-list" id="readingList"></div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  initSidebar('read');
+
+  let readings = [];
+
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function formatDate(iso) {
+    // Parse as local date to avoid off-by-one from UTC
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Render readings ────────────────────────────────────────────
+  function render() {
+    const list = document.getElementById('readingList');
+    const countEl = document.getElementById('readingCount');
+    countEl.textContent = readings.length === 0 ? '' :
+      `${readings.length} entr${readings.length === 1 ? 'y' : 'ies'}`;
+
+    if (readings.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <p>No readings logged yet.</p>
+          <p>Use the form above to record what you read today.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = readings.map(r => `
+      <div class="reading-item" data-id="${r.id}">
+        <div class="reading-date">${escHtml(formatDate(r.date))}</div>
+        <div class="reading-body">
+          <div class="reading-passage">${escHtml(r.passage)}</div>
+          ${r.notes ? `<div class="reading-notes">${escHtml(r.notes)}</div>` : ''}
+        </div>
+        <div class="reading-actions">
+          <button class="btn-edit" data-action="edit" data-id="${r.id}">Edit</button>
+          <button class="btn-danger" data-action="delete" data-id="${r.id}">Remove</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── List actions ───────────────────────────────────────────────
+  document.getElementById('readingList').addEventListener('click', async e => {
+    const action = e.target.dataset.action;
+    const id = Number(e.target.dataset.id);
+    if (!action) return;
+
+    if (action === 'delete') {
+      try {
+        await api('DELETE', `/readings/${id}`);
+        readings = readings.filter(r => r.id !== id);
+        render();
+      } catch (err) { alert(err.message); }
+
+    } else if (action === 'edit') {
+      openInlineEdit(id);
+
+    } else if (action === 'save-edit') {
+      const item = document.querySelector(`.reading-item[data-id="${id}"]`);
+      const date = item.querySelector('.edit-date').value;
+      const passage = item.querySelector('.edit-passage').value.trim();
+      const notes = item.querySelector('.edit-notes').value.trim();
+      if (!passage) { alert('Passage is required.'); return; }
+      try {
+        const updated = await api('PUT', `/readings/${id}`, { date, passage, notes });
+        const r = readings.find(r => r.id === id);
+        if (r && updated) { r.date = updated.date; r.passage = updated.passage; r.notes = updated.notes; }
+        render();
+      } catch (err) { alert(err.message); }
+
+    } else if (action === 'cancel-edit') {
+      render();
+    }
+  });
+
+  function openInlineEdit(id) {
+    const r = readings.find(r => r.id === id);
+    if (!r) return;
+    const item = document.querySelector(`.reading-item[data-id="${id}"]`);
+    if (!item) return;
+
+    item.classList.add('editing');
+    item.innerHTML = `
+      <div>
+        <div class="edit-form-grid">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="edit-date" value="${escHtml(r.date)}" />
+          </div>
+          <div class="form-group">
+            <label>Passage</label>
+            <input type="text" class="edit-passage" value="${escHtml(r.passage)}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea class="edit-notes">${escHtml(r.notes || '')}</textarea>
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="btn-primary btn-save-edit" data-action="save-edit" data-id="${id}">Save</button>
+        <button class="btn-cancel" data-action="cancel-edit" data-id="${id}">Cancel</button>
+      </div>
+    `;
+    item.querySelector('.edit-passage').focus();
+  }
+
+  // ── Log reading form ───────────────────────────────────────────
+  document.getElementById('readDate').value = todayISO();
+
+  document.getElementById('saveReadingBtn').addEventListener('click', async () => {
+    const date = document.getElementById('readDate').value;
+    const passage = document.getElementById('readPassage').value.trim();
+    const notes = document.getElementById('readNotes').value.trim();
+
+    if (!date || !passage) {
+      alert('Date and passage are required.');
+      return;
+    }
+
+    try {
+      const r = await api('POST', '/readings', { date, passage, notes });
+      if (r) {
+        readings.unshift(r);
+        render();
+        document.getElementById('readPassage').value = '';
+        document.getElementById('readNotes').value = '';
+        document.getElementById('readDate').value = todayISO();
+      }
+    } catch (err) { alert(err.message); }
+  });
+
+  document.getElementById('readPassage').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('readNotes').focus(); }
+  });
+
+  // ── Load readings ──────────────────────────────────────────────
+  async function loadReadings() {
+    readings = await api('GET', '/readings') || [];
+    render();
+  }
+
+  loadReadings();
+</script>
+</body>
+</html>

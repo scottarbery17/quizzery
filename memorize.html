@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memorize — Quizzery</title>
+  <link rel="stylesheet" href="/css/shared.css" />
+  <style>
+    /* ── Add card form ────────────────────────────────────────── */
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.75rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .add-form.open { display: flex; }
+
+    .add-form h2 {
+      font-size: 1rem;
+      font-weight: normal;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* ── List ─────────────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .toolbar-left { display: flex; align-items: center; gap: 1rem; }
+
+    .count-summary { font-size: 0.9rem; color: var(--muted); }
+    .count-summary span { font-weight: bold; color: var(--text); }
+
+    .filter-bar { display: flex; gap: 0.5rem; }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+    }
+
+    .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .filter-btn:hover:not(.active) { background: var(--border); color: var(--text); }
+
+    .card-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .card-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: box-shadow 0.15s;
+    }
+
+    .card-item:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.09); }
+
+    .card-field { overflow: hidden; }
+
+    .card-field .field-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .card-field .field-value {
+      font-size: 0.95rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-status { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .status-badge.unseen      { background: #e8e4da; color: #7a7060; }
+    .status-badge.seen        { background: var(--status-learning-bg); color: var(--status-learning); }
+    .status-badge.unmemorized { background: #e8e4da; color: #7a7060; }
+    .status-badge.memorized   { background: var(--status-done-bg); color: var(--status-done); }
+
+    .btn-mark-seen {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      align-self: flex-start;
+    }
+
+    .btn-mark-seen:hover { background: var(--primary); color: #fff; }
+
+    .btn-mark-seen.seen-state {
+      background: var(--status-learning-bg);
+      color: var(--status-learning);
+      border-color: var(--status-learning);
+    }
+
+    .btn-mark-seen.seen-state:hover { background: var(--status-learning); color: #fff; }
+
+    .fc-progress-wrap {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .fc-progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .card-actions { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .btn-edit {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+
+    .btn-edit:hover { background: var(--primary); color: #fff; }
+
+    .card-item.editing { grid-template-columns: 1fr auto; align-items: start; }
+
+    .inline-edit-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .inline-edit-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding-top: 1.4rem;
+    }
+
+    .btn-inline-save { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state p:first-child { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .empty-state p:last-child { font-size: 0.85rem; }
+
+    /* ── Tabs ─────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      padding: 0.6rem 1.4rem;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:active { transform: none; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Flashcard view ───────────────────────────────────────── */
+    .fc-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem 0 2rem;
+    }
+
+    .fc-counter { font-size: 0.85rem; color: var(--muted); }
+
+    .fc-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .fc-arrow {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .fc-arrow:hover { background: var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .fc-arrow:disabled { opacity: 0.3; cursor: default; }
+    .fc-arrow:disabled:hover { background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+    .fc-card-wrap { flex: 1; perspective: 1000px; height: 300px; }
+
+    .fc-card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border-radius: 14px;
+    }
+
+    .fc-card.flipped { transform: rotateY(180deg); }
+
+    .fc-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.09);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+      gap: 0.75rem;
+    }
+
+    .fc-face-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .fc-face-text { font-size: 1.25rem; line-height: 1.5; }
+    .fc-face.back { transform: rotateY(180deg); background: #f0f6ec; }
+
+    .fc-hint { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+
+    .fc-status-row { display: flex; align-items: center; gap: 0.75rem; }
+    .fc-status-row .status-badge { font-size: 0.8rem; padding: 0.25rem 0.9rem; }
+
+    /* ── Quiz view ────────────────────────────────────────────── */
+    .quiz-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1rem 0 2rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .quiz-mode-bar {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.25rem;
+    }
+
+    .quiz-mode-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-radius: 6px;
+      padding: 0.4rem 1.1rem;
+      font-size: 0.88rem;
+    }
+
+    .quiz-mode-btn.active { background: var(--primary); color: #fff; }
+    .quiz-mode-btn:hover:not(.active) { background: var(--border); color: var(--text); }
+
+    .quiz-counter { font-size: 0.85rem; color: var(--muted); }
+
+    .quiz-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2rem;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .quiz-prompt-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .quiz-prompt { font-size: 1.2rem; line-height: 1.55; }
+
+    .quiz-answer-label {
+      display: block;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .quiz-textarea {
+      font-family: inherit;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      background: var(--bg);
+      color: var(--text);
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .quiz-textarea:focus { border-color: var(--primary); }
+    .quiz-textarea:disabled { opacity: 0.65; cursor: default; }
+
+    .quiz-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .quiz-nav-arrows { display: flex; gap: 0.5rem; }
+
+    .quiz-result {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .quiz-result.visible { display: flex; }
+
+    .quiz-result-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .quiz-correct-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--status-done);
+      background: var(--status-done-bg);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+    }
+
+    .btn-memorize {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      align-self: flex-start;
+    }
+
+    .btn-memorize:hover { background: var(--primary); color: #fff; }
+
+    .btn-memorize.memorized {
+      background: var(--status-done-bg);
+      color: var(--status-done);
+      border-color: var(--status-done);
+    }
+
+    .btn-memorize.memorized:hover {
+      background: var(--status-done);
+      color: #fff;
+      border-color: var(--status-done);
+    }
+
+    /* ── Quiz progress bars ───────────────────────────────────── */
+    .quiz-progress-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .quiz-progress-section { display: flex; flex-direction: column; gap: 0.3rem; }
+
+    .quiz-progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .quiz-progress-bar {
+      height: 8px;
+      border-radius: 99px;
+      background: #b8d4f0;
+      overflow: hidden;
+    }
+
+    .quiz-progress-fill {
+      height: 100%;
+      background: var(--status-done);
+      border-radius: 99px;
+      transition: width 0.35s ease;
+    }
+
+    @media (max-width: 600px) {
+      .card-item { grid-template-columns: 1fr auto auto; }
+      .card-item .card-field:nth-child(2) { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      .inline-edit-fields { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Quizzery</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link" data-page="memorize" href="/memorize">Memorize</a>
+      <a class="sidebar-link" data-page="read" href="/read">Read</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="sidebar-username" id="sidebarUser"></span>
+      <button class="btn-logout" id="sidebarLogout">Log out</button>
+    </div>
+  </aside>
+
+  <div class="page-content">
+    <div class="mobile-topbar">
+      <button class="hamburger-btn" id="hamburgerBtn">&#9776;</button>
+      <span class="mobile-topbar-title">Quizzery</span>
+    </div>
+
+    <main class="page-main">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="list">List</button>
+        <button class="tab-btn" data-tab="flashcards">Flashcards</button>
+        <button class="tab-btn" data-tab="quiz">Quiz</button>
+      </div>
+
+      <!-- List tab -->
+      <div class="tab-panel active" id="tab-list">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="count-summary" id="countSummary"></div>
+            <div class="filter-bar">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="unseen">Unseen</button>
+              <button class="filter-btn" data-filter="seen">Seen</button>
+              <button class="filter-btn" data-filter="unmemorized">Unmemorized</button>
+              <button class="filter-btn" data-filter="memorized">Memorized</button>
+            </div>
+          </div>
+          <button class="btn-primary" id="toggleAddBtn">+ Add Card</button>
+        </div>
+
+        <div class="add-form" id="addForm">
+          <h2>New Flashcard</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="frontInput">Front (Reference)</label>
+              <input type="text" id="frontInput" placeholder="e.g. John 3:16" />
+            </div>
+            <div class="form-group">
+              <label for="backInput">Back (Verse Text)</label>
+              <textarea id="backInput" placeholder="For God so loved the world..."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-cancel" id="cancelAddBtn">Cancel</button>
+            <button class="btn-primary" id="saveCardBtn">Save Card</button>
+          </div>
+        </div>
+
+        <div class="card-list" id="cardList"></div>
+      </div><!-- /tab-list -->
+
+      <!-- Flashcards tab -->
+      <div class="tab-panel" id="tab-flashcards">
+        <div class="fc-view">
+          <div class="fc-counter" id="fcCounter"></div>
+          <div class="fc-nav">
+            <button class="fc-arrow" id="fcPrev">&#8592;</button>
+            <div class="fc-card-wrap">
+              <div class="fc-card" id="fcCard">
+                <div class="fc-face front">
+                  <div class="fc-face-label">Reference</div>
+                  <div class="fc-face-text" id="fcFront"></div>
+                </div>
+                <div class="fc-face back">
+                  <div class="fc-face-label">Verse</div>
+                  <div class="fc-face-text" id="fcBack"></div>
+                </div>
+              </div>
+            </div>
+            <button class="fc-arrow" id="fcNext">&#8594;</button>
+          </div>
+          <p class="fc-hint">Click the card to flip it</p>
+          <div class="fc-status-row">
+            <span id="fcSeenBadge" class="status-badge"></span>
+            <span id="fcMemoBadge" class="status-badge"></span>
+            <button class="btn-mark-seen" id="fcMarkSeen">Mark as Seen</button>
+          </div>
+          <div class="fc-progress-wrap">
+            <div class="fc-progress-header">
+              <span>Seen</span>
+              <span id="fcProgressCount">0 / 0 seen</span>
+            </div>
+            <div class="quiz-progress-bar">
+              <div class="quiz-progress-fill" id="fcProgressFill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /tab-flashcards -->
+
+      <!-- Quiz tab -->
+      <div class="tab-panel" id="tab-quiz">
+        <div class="quiz-view">
+          <div class="quiz-mode-bar">
+            <button class="quiz-mode-btn active" id="qzModeRef">Reference first</button>
+            <button class="quiz-mode-btn" id="qzModeVerse">Verse first</button>
+          </div>
+          <div class="quiz-counter" id="qzCounter"></div>
+          <div class="quiz-card">
+            <div>
+              <div class="quiz-prompt-label" id="qzPromptLabel"></div>
+              <div class="quiz-prompt" id="qzPrompt"></div>
+            </div>
+            <div class="quiz-answer-area">
+              <label class="quiz-answer-label" id="qzAnswerLabel" for="qzAnswer"></label>
+              <textarea class="quiz-textarea" id="qzAnswer" placeholder="Type your answer here..."></textarea>
+            </div>
+            <div class="quiz-actions">
+              <div class="quiz-nav-arrows">
+                <button class="fc-arrow" id="qzPrev" title="Previous">&#8592;</button>
+                <button class="fc-arrow" id="qzNext" title="Next">&#8594;</button>
+              </div>
+              <button class="btn-primary" id="qzCheck">Check Answer</button>
+            </div>
+            <div class="quiz-result" id="qzResult">
+              <div class="quiz-result-label">Correct answer:</div>
+              <div class="quiz-correct-text" id="qzCorrect"></div>
+              <button class="btn-memorize" id="qzMarkMemo">Mark as memorized</button>
+            </div>
+          </div>
+          <div class="quiz-progress-wrap">
+            <div class="quiz-progress-section">
+              <div class="quiz-progress-header">
+                <span>Reference first</span>
+                <span id="qzProgressRefCount">0 / 0 memorized</span>
+              </div>
+              <div class="quiz-progress-bar">
+                <div class="quiz-progress-fill" id="qzProgressRefFill" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="quiz-progress-section">
+              <div class="quiz-progress-header">
+                <span>Verse first</span>
+                <span id="qzProgressVerseCount">0 / 0 recognized</span>
+              </div>
+              <div class="quiz-progress-bar">
+                <div class="quiz-progress-fill" id="qzProgressVerseFill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /tab-quiz -->
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  initSidebar('memorize');
+
+  let cards = [];
+  let activeFilter = 'all';
+  let currentUser = getCurrentUser();
+
+  async function loadCards() {
+    cards = await api('GET', '/cards') || [];
+    loadRecognizedSet();
+    fcIndex = 0;
+    render();
+    updateFcProgress();
+    if (document.getElementById('tab-flashcards').classList.contains('active')) renderFlashcard();
+  }
+
+  // ── List rendering ─────────────────────────────────────────────
+  function updateSummary() {
+    const total = cards.length;
+    const seen = cards.filter(c => c.seen).length;
+    const memorized = cards.filter(c => c.memorized).length;
+    document.getElementById('countSummary').innerHTML =
+      `<span>${total}</span> card${total !== 1 ? 's' : ''} &nbsp;&middot;&nbsp; ` +
+      `<span>${seen}</span> seen &nbsp;&middot;&nbsp; <span>${memorized}</span> memorized`;
+  }
+
+  function render() {
+    updateSummary();
+    const list = document.getElementById('cardList');
+    const filtered =
+      activeFilter === 'all'         ? cards :
+      activeFilter === 'seen'        ? cards.filter(c => c.seen) :
+      activeFilter === 'unseen'      ? cards.filter(c => !c.seen) :
+      activeFilter === 'memorized'   ? cards.filter(c => c.memorized) :
+      activeFilter === 'unmemorized' ? cards.filter(c => !c.memorized) :
+      cards;
+
+    if (filtered.length === 0) {
+      const label = { seen: 'Seen', unseen: 'Unseen', memorized: 'Memorized', unmemorized: 'Unmemorized' };
+      list.innerHTML = `
+        <div class="empty-state">
+          <p>${activeFilter === 'all' ? 'No cards yet.' : `No "${label[activeFilter]}" cards.`}</p>
+          <p>${activeFilter === 'all' ? 'Click "+ Add Card" to get started.' : 'Change the filter or add new cards.'}</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(card => `
+      <div class="card-item" data-id="${card.id}">
+        <div class="card-field">
+          <div class="field-label">Front</div>
+          <div class="field-value">${escHtml(card.front)}</div>
+        </div>
+        <div class="card-field">
+          <div class="field-label">Back</div>
+          <div class="field-value">${escHtml(card.back)}</div>
+        </div>
+        <div class="card-status">
+          <span class="status-badge ${card.seen ? 'seen' : 'unseen'}">${card.seen ? 'Seen' : 'Unseen'}</span>
+          <span class="status-badge ${card.memorized ? 'memorized' : 'unmemorized'}">${card.memorized ? 'Memorized' : 'Unmemorized'}</span>
+        </div>
+        <div class="card-actions">
+          <button class="btn-edit" data-action="edit" data-id="${card.id}">Edit</button>
+          <button class="btn-danger" data-action="delete" data-id="${card.id}">Remove</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Add card form ──────────────────────────────────────────────
+  const addForm = document.getElementById('addForm');
+
+  document.getElementById('toggleAddBtn').addEventListener('click', () => {
+    addForm.classList.toggle('open');
+    if (addForm.classList.contains('open')) document.getElementById('frontInput').focus();
+  });
+
+  document.getElementById('cancelAddBtn').addEventListener('click', () => {
+    addForm.classList.remove('open');
+    clearForm();
+  });
+
+  document.getElementById('saveCardBtn').addEventListener('click', async () => {
+    const front = document.getElementById('frontInput').value.trim();
+    const back = document.getElementById('backInput').value.trim();
+    if (!front && !back) return;
+    try {
+      const card = await api('POST', '/cards', { front: front || '(empty)', back: back || '(empty)' });
+      if (card) {
+        cards.push(card);
+        render();
+        clearForm();
+        addForm.classList.remove('open');
+      }
+    } catch (err) { alert(err.message); }
+  });
+
+  function clearForm() {
+    document.getElementById('frontInput').value = '';
+    document.getElementById('backInput').value = '';
+  }
+
+  document.getElementById('frontInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('backInput').focus(); }
+  });
+
+  // ── List actions ───────────────────────────────────────────────
+  document.getElementById('cardList').addEventListener('click', async e => {
+    const action = e.target.dataset.action;
+    const id = Number(e.target.dataset.id);
+    if (!action) return;
+
+    if (action === 'edit') {
+      openInlineEdit(id);
+
+    } else if (action === 'delete') {
+      try {
+        await api('DELETE', `/cards/${id}`);
+        cards = cards.filter(c => c.id !== id);
+        render();
+      } catch (err) { alert(err.message); }
+
+    } else if (action === 'save-edit') {
+      const item = document.querySelector(`.card-item[data-id="${id}"]`);
+      const front = item.querySelector('.inline-front').value.trim();
+      const back = item.querySelector('.inline-back').value.trim();
+      const card = cards.find(c => c.id === id);
+      if (card) {
+        const newFront = front || card.front;
+        const newBack = back || card.back;
+        try {
+          await api('PUT', `/cards/${id}`, { front: newFront, back: newBack });
+          card.front = newFront;
+          card.back = newBack;
+          render();
+        } catch (err) { alert(err.message); }
+      }
+
+    } else if (action === 'cancel-edit') {
+      render();
+    }
+  });
+
+  function openInlineEdit(id) {
+    const card = cards.find(c => c.id === id);
+    if (!card) return;
+    const item = document.querySelector(`.card-item[data-id="${id}"]`);
+    if (!item) return;
+
+    item.innerHTML = `
+      <div class="inline-edit-fields">
+        <div class="form-group">
+          <label>Front</label>
+          <input type="text" class="inline-front" value="${escHtml(card.front)}" />
+        </div>
+        <div class="form-group">
+          <label>Back</label>
+          <textarea class="inline-back">${escHtml(card.back)}</textarea>
+        </div>
+      </div>
+      <div class="inline-edit-actions">
+        <button class="btn-primary btn-inline-save" data-action="save-edit" data-id="${id}">Save</button>
+        <button class="btn-cancel" data-action="cancel-edit" data-id="${id}">Cancel</button>
+      </div>
+    `;
+    item.classList.add('editing');
+    item.querySelector('.inline-front').focus();
+  }
+
+  // ── Filter buttons ─────────────────────────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // ── Tabs ───────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'flashcards') renderFlashcard();
+      else if (btn.dataset.tab === 'quiz') initQuiz();
+    });
+  });
+
+  // ── Flashcard view ─────────────────────────────────────────────
+  let fcIndex = 0;
+  let fcFlipped = false;
+
+  function renderFlashcard() {
+    if (cards.length === 0) {
+      document.getElementById('fcCounter').textContent = 'No cards';
+      document.getElementById('fcFront').textContent = '';
+      document.getElementById('fcBack').textContent = '';
+      document.getElementById('fcPrev').disabled = true;
+      document.getElementById('fcNext').disabled = true;
+      return;
+    }
+
+    if (fcIndex >= cards.length) fcIndex = cards.length - 1;
+    const card = cards[fcIndex];
+
+    fcFlipped = false;
+    document.getElementById('fcCard').classList.remove('flipped');
+    document.getElementById('fcCounter').textContent = `${fcIndex + 1} / ${cards.length}`;
+    document.getElementById('fcFront').textContent = card.front;
+    document.getElementById('fcBack').textContent = card.back;
+    document.getElementById('fcPrev').disabled = fcIndex === 0;
+    document.getElementById('fcNext').disabled = fcIndex === cards.length - 1;
+
+    const seenBadge = document.getElementById('fcSeenBadge');
+    seenBadge.textContent = card.seen ? 'Seen' : 'Unseen';
+    seenBadge.className = 'status-badge ' + (card.seen ? 'seen' : 'unseen');
+
+    const memoBadge = document.getElementById('fcMemoBadge');
+    memoBadge.textContent = card.memorized ? 'Memorized' : 'Unmemorized';
+    memoBadge.className = 'status-badge ' + (card.memorized ? 'memorized' : 'unmemorized');
+
+    const markBtn = document.getElementById('fcMarkSeen');
+    markBtn.textContent = card.seen ? 'Mark as Unseen' : 'Mark as Seen';
+    markBtn.classList.toggle('seen-state', !!card.seen);
+  }
+
+  function updateFcProgress() {
+    const total = cards.length;
+    const seenCount = cards.filter(c => c.seen).length;
+    const pct = total ? (seenCount / total * 100) : 0;
+    document.getElementById('fcProgressCount').textContent = `${seenCount} / ${total} seen`;
+    document.getElementById('fcProgressFill').style.width = `${pct}%`;
+  }
+
+  document.getElementById('fcCard').addEventListener('click', () => {
+    fcFlipped = !fcFlipped;
+    document.getElementById('fcCard').classList.toggle('flipped', fcFlipped);
+  });
+
+  document.getElementById('fcPrev').addEventListener('click', () => {
+    if (fcIndex > 0) { fcIndex--; renderFlashcard(); }
+  });
+
+  document.getElementById('fcNext').addEventListener('click', () => {
+    if (fcIndex < cards.length - 1) { fcIndex++; renderFlashcard(); }
+  });
+
+  document.getElementById('fcMarkSeen').addEventListener('click', async () => {
+    const card = cards[fcIndex];
+    if (!card) return;
+    const newVal = card.seen ? 0 : 1;
+    card.seen = newVal;
+    renderFlashcard();
+    updateFcProgress();
+    updateSummary();
+    try { await api('PUT', `/cards/${card.id}`, { seen: newVal }); }
+    catch { await loadCards(); }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('tab-flashcards').classList.contains('active')) return;
+    if (e.key === 'ArrowLeft') { if (fcIndex > 0) { fcIndex--; renderFlashcard(); } }
+    else if (e.key === 'ArrowRight') { if (fcIndex < cards.length - 1) { fcIndex++; renderFlashcard(); } }
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); document.getElementById('fcCard').click(); }
+  });
+
+  // ── Quiz view ──────────────────────────────────────────────────
+  let quizMode = 'reference'; // 'reference' | 'verse'
+  let quizIndex = 0;
+  let recognizedSet = new Set();
+
+  function recognizedKey() {
+    return `quizzery-recognized-${currentUser || 'guest'}`;
+  }
+
+  function loadRecognizedSet() {
+    const v = localStorage.getItem(recognizedKey());
+    recognizedSet = new Set(v ? JSON.parse(v) : []);
+  }
+
+  function saveRecognizedSet() {
+    localStorage.setItem(recognizedKey(), JSON.stringify([...recognizedSet]));
+  }
+
+  function updateQuizProgress() {
+    const total = cards.length;
+    const refCount   = cards.filter(c => c.memorized).length;
+    const verseCount = recognizedSet.size;
+    const refPct   = total ? (refCount / total * 100) : 0;
+    const versePct = total ? (verseCount / total * 100) : 0;
+
+    document.getElementById('qzProgressRefCount').textContent   = `${refCount} / ${total} memorized`;
+    document.getElementById('qzProgressVerseCount').textContent = `${verseCount} / ${total} recognized`;
+    document.getElementById('qzProgressRefFill').style.width   = `${refPct}%`;
+    document.getElementById('qzProgressVerseFill').style.width = `${versePct}%`;
+  }
+
+  function updateMemoBtn() {
+    const card = cards[quizIndex];
+    if (!card) return;
+    const btn = document.getElementById('qzMarkMemo');
+    if (quizMode === 'reference') {
+      if (card.memorized) {
+        btn.textContent = 'Memorized';
+        btn.classList.add('memorized');
+      } else {
+        btn.textContent = 'Mark as memorized';
+        btn.classList.remove('memorized');
+      }
+    } else {
+      if (recognizedSet.has(card.id)) {
+        btn.textContent = 'Recognized';
+        btn.classList.add('memorized');
+      } else {
+        btn.textContent = 'Mark as recognized';
+        btn.classList.remove('memorized');
+      }
+    }
+  }
+
+  function initQuiz() {
+    quizIndex = 0;
+    renderQuiz();
+  }
+
+  function renderQuiz() {
+    const result = document.getElementById('qzResult');
+    result.classList.remove('visible');
+    document.getElementById('qzAnswer').value = '';
+    document.getElementById('qzAnswer').disabled = false;
+    document.getElementById('qzCheck').style.display = '';
+
+    if (cards.length === 0) {
+      document.getElementById('qzCounter').textContent = 'No cards';
+      document.getElementById('qzPrompt').textContent = 'Add some cards first.';
+      document.getElementById('qzPrev').disabled = true;
+      document.getElementById('qzNext').disabled = true;
+      return;
+    }
+
+    if (quizIndex >= cards.length) quizIndex = cards.length - 1;
+    const card = cards[quizIndex];
+    const isRef = quizMode === 'reference';
+
+    document.getElementById('qzCounter').textContent = `${quizIndex + 1} / ${cards.length}`;
+    document.getElementById('qzPromptLabel').textContent = isRef ? 'Reference' : 'Verse';
+    document.getElementById('qzPrompt').textContent = isRef ? card.front : card.back;
+    document.getElementById('qzAnswerLabel').textContent = isRef ? 'Type the verse:' : 'Type the reference:';
+    document.getElementById('qzPrev').disabled = quizIndex === 0;
+    document.getElementById('qzNext').disabled = quizIndex === cards.length - 1;
+    document.getElementById('qzAnswer').focus();
+    updateQuizProgress();
+  }
+
+  document.getElementById('qzCheck').addEventListener('click', () => {
+    const card = cards[quizIndex];
+    if (!card) return;
+    const correct = quizMode === 'reference' ? card.back : card.front;
+    document.getElementById('qzCorrect').textContent = correct;
+    document.getElementById('qzResult').classList.add('visible');
+    document.getElementById('qzAnswer').disabled = true;
+    document.getElementById('qzCheck').style.display = 'none';
+    updateMemoBtn();
+  });
+
+  document.getElementById('qzMarkMemo').addEventListener('click', async () => {
+    const card = cards[quizIndex];
+    if (!card) return;
+
+    if (quizMode === 'reference') {
+      const newVal = card.memorized ? 0 : 1;
+      card.memorized = newVal;
+      updateMemoBtn();
+      updateQuizProgress();
+      updateSummary();
+      try { await api('PUT', `/cards/${card.id}`, { memorized: newVal }); }
+      catch { await loadCards(); }
+    } else {
+      if (recognizedSet.has(card.id)) {
+        recognizedSet.delete(card.id);
+      } else {
+        recognizedSet.add(card.id);
+      }
+      saveRecognizedSet();
+      updateMemoBtn();
+      updateQuizProgress();
+    }
+  });
+
+  document.getElementById('qzAnswer').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      document.getElementById('qzCheck').click();
+    }
+  });
+
+  document.getElementById('qzPrev').addEventListener('click', () => {
+    if (quizIndex > 0) { quizIndex--; renderQuiz(); }
+  });
+
+  document.getElementById('qzNext').addEventListener('click', () => {
+    if (quizIndex < cards.length - 1) { quizIndex++; renderQuiz(); }
+  });
+
+  document.getElementById('qzModeRef').addEventListener('click', () => {
+    quizMode = 'reference';
+    document.getElementById('qzModeRef').classList.add('active');
+    document.getElementById('qzModeVerse').classList.remove('active');
+    renderQuiz();
+  });
+
+  document.getElementById('qzModeVerse').addEventListener('click', () => {
+    quizMode = 'verse';
+    document.getElementById('qzModeVerse').classList.add('active');
+    document.getElementById('qzModeRef').classList.remove('active');
+    renderQuiz();
+  });
+
+  // ── Init ───────────────────────────────────────────────────────
+  loadCards();
+</script>
+</body>
+</html>
