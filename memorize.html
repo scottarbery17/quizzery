@@ -257,7 +257,7 @@
       border-radius: 14px;
     }
 
-    .fc-card.flipped { transform: rotateY(180deg); }
+    .fc-card.flipped { transform: rotateX(180deg); }
 
     .fc-face {
       position: absolute;
@@ -279,7 +279,15 @@
 
     .fc-face-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
     .fc-face-text { font-size: 1.25rem; line-height: 1.5; }
-    .fc-face.back { transform: rotateY(180deg); background: #f0f6ec; }
+    .fc-face.back { transform: rotateX(180deg); background: #f0f6ec; }
+
+    .fc-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 640px;
+    }
 
     .fc-hint { font-size: 0.8rem; color: var(--muted); font-style: italic; }
 
@@ -539,6 +547,13 @@
       <!-- Flashcards tab -->
       <div class="tab-panel" id="tab-flashcards">
         <div class="fc-view">
+          <div class="fc-controls">
+            <div class="quiz-mode-bar">
+              <button class="quiz-mode-btn active" id="fcModeRef">Reference first</button>
+              <button class="quiz-mode-btn" id="fcModeVerse">Verse first</button>
+            </div>
+            <button class="btn-shuffle" id="fcShuffle">Randomize</button>
+          </div>
           <div class="fc-counter" id="fcCounter"></div>
           <div class="fc-nav">
             <button class="fc-arrow" id="fcPrev">&#8592;</button>
@@ -556,7 +571,7 @@
             </div>
             <button class="fc-arrow" id="fcNext">&#8594;</button>
           </div>
-          <p class="fc-hint">Click the card to flip it</p>
+          <p class="fc-hint">Click the card or press up/down arrow to flip</p>
           <div class="fc-status-row">
             <span id="fcSeenBadge" class="status-badge"></span>
             <span id="fcMemoBadge" class="status-badge"></span>
@@ -654,6 +669,7 @@
     cards = await api('GET', '/cards') || [];
     loadRecognizedSet();
     fcIndex = 0;
+    buildFcCards();
     render();
     updateFcProgress();
     if (document.getElementById('tab-flashcards').classList.contains('active')) renderFlashcard();
@@ -701,8 +717,8 @@
           <div class="field-value">${escHtml(card.back)}</div>
         </div>
         <div class="card-status">
-          <span class="status-badge ${card.seen ? 'seen' : 'unseen'}">${card.seen ? 'Seen' : 'Unseen'}</span>
-          <span class="status-badge ${card.memorized ? 'memorized' : 'unmemorized'}">${card.memorized ? 'Memorized' : 'Unmemorized'}</span>
+          <span class="status-badge ${card.seen ? 'seen' : 'unseen'}">${card.seen ? 'Seen' + (card.seen_at ? ' ' + fmtDate(card.seen_at) : '') : 'Unseen'}</span>
+          <span class="status-badge ${card.memorized ? 'memorized' : 'unmemorized'}">${card.memorized ? 'Memorized' + (card.memorized_at ? ' ' + fmtDate(card.memorized_at) : '') : 'Unmemorized'}</span>
         </div>
         <div class="card-actions">
           <button class="btn-edit" data-action="edit" data-id="${card.id}">Edit</button>
@@ -714,6 +730,12 @@
 
   function escHtml(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
   }
 
   // ── Add card form ──────────────────────────────────────────────
@@ -841,9 +863,23 @@
   // ── Flashcard view ─────────────────────────────────────────────
   let fcIndex = 0;
   let fcFlipped = false;
+  let fcMode = 'reference'; // 'reference' | 'verse'
+  let fcRandomized = false;
+  let fcCards = [];
+
+  function buildFcCards() {
+    let pool = [...cards];
+    if (fcRandomized) {
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+    }
+    fcCards = pool;
+  }
 
   function renderFlashcard() {
-    if (cards.length === 0) {
+    if (fcCards.length === 0) {
       document.getElementById('fcCounter').textContent = 'No cards';
       document.getElementById('fcFront').textContent = '';
       document.getElementById('fcBack').textContent = '';
@@ -852,16 +888,19 @@
       return;
     }
 
-    if (fcIndex >= cards.length) fcIndex = cards.length - 1;
-    const card = cards[fcIndex];
+    if (fcIndex >= fcCards.length) fcIndex = fcCards.length - 1;
+    const card = fcCards[fcIndex];
+    const isRef = fcMode === 'reference';
 
     fcFlipped = false;
     document.getElementById('fcCard').classList.remove('flipped');
-    document.getElementById('fcCounter').textContent = `${fcIndex + 1} / ${cards.length}`;
-    document.getElementById('fcFront').textContent = card.front;
-    document.getElementById('fcBack').textContent = card.back;
+    document.getElementById('fcCounter').textContent = `${fcIndex + 1} / ${fcCards.length}`;
+    document.getElementById('fcFront').textContent = isRef ? card.front : card.back;
+    document.getElementById('fcBack').textContent = isRef ? card.back : card.front;
+    document.querySelector('#fcCard .front .fc-face-label').textContent = isRef ? 'Reference' : 'Verse';
+    document.querySelector('#fcCard .back .fc-face-label').textContent = isRef ? 'Verse' : 'Reference';
     document.getElementById('fcPrev').disabled = fcIndex === 0;
-    document.getElementById('fcNext').disabled = fcIndex === cards.length - 1;
+    document.getElementById('fcNext').disabled = fcIndex === fcCards.length - 1;
 
     const seenBadge = document.getElementById('fcSeenBadge');
     seenBadge.textContent = card.seen ? 'Seen' : 'Unseen';
@@ -889,16 +928,40 @@
     document.getElementById('fcCard').classList.toggle('flipped', fcFlipped);
   });
 
+  document.getElementById('fcModeRef').addEventListener('click', () => {
+    fcMode = 'reference';
+    document.getElementById('fcModeRef').classList.add('active');
+    document.getElementById('fcModeVerse').classList.remove('active');
+    fcIndex = 0;
+    renderFlashcard();
+  });
+
+  document.getElementById('fcModeVerse').addEventListener('click', () => {
+    fcMode = 'verse';
+    document.getElementById('fcModeVerse').classList.add('active');
+    document.getElementById('fcModeRef').classList.remove('active');
+    fcIndex = 0;
+    renderFlashcard();
+  });
+
+  document.getElementById('fcShuffle').addEventListener('click', () => {
+    fcRandomized = !fcRandomized;
+    document.getElementById('fcShuffle').classList.toggle('active', fcRandomized);
+    fcIndex = 0;
+    buildFcCards();
+    renderFlashcard();
+  });
+
   document.getElementById('fcPrev').addEventListener('click', () => {
     if (fcIndex > 0) { fcIndex--; renderFlashcard(); }
   });
 
   document.getElementById('fcNext').addEventListener('click', () => {
-    if (fcIndex < cards.length - 1) { fcIndex++; renderFlashcard(); }
+    if (fcIndex < fcCards.length - 1) { fcIndex++; renderFlashcard(); }
   });
 
   document.getElementById('fcMarkSeen').addEventListener('click', async () => {
-    const card = cards[fcIndex];
+    const card = fcCards[fcIndex];
     if (!card) return;
     const newVal = card.seen ? 0 : 1;
     card.seen = newVal;
@@ -912,7 +975,8 @@
   document.addEventListener('keydown', e => {
     if (!document.getElementById('tab-flashcards').classList.contains('active')) return;
     if (e.key === 'ArrowLeft') { if (fcIndex > 0) { fcIndex--; renderFlashcard(); } }
-    else if (e.key === 'ArrowRight') { if (fcIndex < cards.length - 1) { fcIndex++; renderFlashcard(); } }
+    else if (e.key === 'ArrowRight') { if (fcIndex < fcCards.length - 1) { fcIndex++; renderFlashcard(); } }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); document.getElementById('fcCard').click(); }
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); document.getElementById('fcCard').click(); }
   });
 

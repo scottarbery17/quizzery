@@ -33,6 +33,8 @@ db.exec(`
     back TEXT NOT NULL,
     seen INTEGER NOT NULL DEFAULT 0,
     memorized INTEGER NOT NULL DEFAULT 0,
+    seen_at TEXT,
+    memorized_at TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
@@ -61,6 +63,8 @@ db.exec(`
 try { db.exec('ALTER TABLE cards ADD COLUMN seen INTEGER NOT NULL DEFAULT 0'); } catch {}
 try { db.exec('ALTER TABLE cards ADD COLUMN memorized INTEGER NOT NULL DEFAULT 0'); } catch {}
 try { db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch {}
+try { db.exec('ALTER TABLE cards ADD COLUMN seen_at TEXT'); } catch {}
+try { db.exec('ALTER TABLE cards ADD COLUMN memorized_at TEXT'); } catch {}
 
 // ── App setup ──────────────────────────────────────────────────
 const app = express();
@@ -227,7 +231,7 @@ app.put('/profile/username', requireAuth, async (req, res) => {
 // ── Card routes ────────────────────────────────────────────────
 app.get('/cards', requireAuth, (req, res) => {
   const cards = db.prepare(
-    'SELECT id, front, back, seen, memorized FROM cards WHERE user_id = ? ORDER BY id'
+    'SELECT id, front, back, seen, memorized, seen_at, memorized_at FROM cards WHERE user_id = ? ORDER BY id'
   ).all(req.user.id);
   res.json(cards);
 });
@@ -254,11 +258,23 @@ app.put('/cards/:id', requireAuth, (req, res) => {
   const seen = req.body.seen !== undefined ? req.body.seen : card.seen;
   const memorized = req.body.memorized !== undefined ? req.body.memorized : card.memorized;
 
-  db.prepare(
-    'UPDATE cards SET front = ?, back = ?, seen = ?, memorized = ? WHERE id = ?'
-  ).run(front, back, seen, memorized, card.id);
+  let seenAt = card.seen_at ?? null;
+  if (req.body.seen !== undefined) {
+    if (req.body.seen && !card.seen) seenAt = new Date().toISOString();
+    else if (!req.body.seen) seenAt = null;
+  }
 
-  res.json({ id: card.id, front, back, seen, memorized });
+  let memorizedAt = card.memorized_at ?? null;
+  if (req.body.memorized !== undefined) {
+    if (req.body.memorized && !card.memorized) memorizedAt = new Date().toISOString();
+    else if (!req.body.memorized) memorizedAt = null;
+  }
+
+  db.prepare(
+    'UPDATE cards SET front = ?, back = ?, seen = ?, memorized = ?, seen_at = ?, memorized_at = ? WHERE id = ?'
+  ).run(front, back, seen, memorized, seenAt, memorizedAt, card.id);
+
+  res.json({ id: card.id, front, back, seen, memorized, seen_at: seenAt, memorized_at: memorizedAt });
 });
 
 app.delete('/cards/:id', requireAuth, (req, res) => {
