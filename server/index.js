@@ -168,9 +168,9 @@ app.post('/auth/forgot-password', async (req, res) => {
 
   const resetUrl = `https://dontforgetbible.com/reset-password?token=${token}`;
   await resend.emails.send({
-    from: 'Quizzery <noreply@dontforgetbible.com>',
+    from: "Don't Forget! Bible <noreply@dontforgetbible.com>",
     to: email.trim(),
-    subject: 'Reset your Quizzery password',
+    subject: "Reset your Don't Forget! Bible password",
     html: `<p>Hi ${user.username},</p>
            <p>Click the link below to reset your password. This link expires in 1 hour.</p>
            <p><a href="${resetUrl}">${resetUrl}</a></p>
@@ -288,5 +288,5 @@ app.delete('/readings/:id', requireAuth, (req, res) => {
 
 // ── Start ──────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`Quizzery running at http://localhost:${PORT}`);
+  console.log(`Don't Forget! Bible running at http://localhost:${PORT}`);
 });
