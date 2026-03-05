@@ -49,26 +49,56 @@
   };
 
   window.initSidebar = function (activePage) {
+    const navPages = [
+      { page: 'memorize', label: 'Memorize', href: '/memorize' },
+      { page: 'read',     label: 'Read',     href: '/read'     },
+    ];
+
+    const navLinks = navPages.map(p =>
+      `<a class="sidebar-link${p.page === activePage ? ' active' : ''}" data-page="${p.page}" href="${p.href}">${p.label}</a>`
+    ).join('');
+
+    const layout = document.querySelector('.layout');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    overlay.id = 'sidebarOverlay';
+    layout.parentNode.insertBefore(overlay, layout);
+
+    layout.insertAdjacentHTML('afterbegin', `
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Don't Forget!</span>
+          <span class="sidebar-subtitle">Bible</span>
+        </div>
+        <nav class="sidebar-nav">${navLinks}</nav>
+        <div class="sidebar-footer">
+          <span class="sidebar-username" id="sidebarUser"></span>
+          <a class="btn-view-profile" href="/profile">View Profile</a>
+          <button class="btn-logout" id="sidebarLogout">Log out</button>
+        </div>
+      </aside>
+    `);
+
+    document.querySelector('.page-content').insertAdjacentHTML('afterbegin', `
+      <div class="mobile-topbar">
+        <button class="hamburger-btn" id="hamburgerBtn">&#9776;</button>
+        <span class="mobile-topbar-title">Don't Forget!</span>
+      </div>
+    `);
+
     document.getElementById('sidebarUser').textContent = _user || '';
-
-    document.querySelectorAll('.sidebar-link').forEach(link => {
-      link.classList.toggle('active', link.dataset.page === activePage);
-    });
-
     document.getElementById('sidebarLogout').addEventListener('click', doLogout);
 
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
     const hamburger = document.getElementById('hamburgerBtn');
-    if (hamburger && sidebar && overlay) {
-      hamburger.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('visible');
-      });
-      overlay.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('visible');
-      });
-    }
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('visible');
+    });
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+    });
   };
 })();

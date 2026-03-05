@@ -80,6 +80,10 @@ app.get('/reset-password', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'reset-password.html'));
 });
 
+app.get('/profile', (_, res) => {
+  res.sendFile(path.join(__dirname, '..', 'profile.html'));
+});
+
 // ── Auth middleware ────────────────────────────────────────────
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization;
@@ -110,9 +114,14 @@ app.post('/auth/signup', async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters.' });
   }
 
-  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username.trim());
-  if (existing) {
-    return res.status(409).json({ error: 'That username is already taken.' });
+  const existingUsername = db.prepare('SELECT id FROM users WHERE username = ?').get(username.trim());
+  if (existingUsername) {
+    return res.status(409).json({ error: 'Username already exists.' });
+  }
+
+  const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim());
+  if (existingEmail) {
+    return res.status(409).json({ error: 'Email already exists.' });
   }
 
   const hash = await bcrypt.hash(password, 10);
@@ -193,6 +202,26 @@ app.post('/auth/reset-password', async (req, res) => {
   db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').run(row.id);
 
   res.json({ ok: true });
+});
+
+// ── Profile routes ─────────────────────────────────────────────
+app.get('/profile/me', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT username, email FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  res.json(user);
+});
+
+app.put('/profile/username', requireAuth, async (req, res) => {
+  const { username } = req.body ?? {};
+  if (!username?.trim()) return res.status(400).json({ error: 'Username is required.' });
+  if (username.trim().length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters.' });
+
+  const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username.trim(), req.user.id);
+  if (existing) return res.status(409).json({ error: 'Username already exists.' });
+
+  db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username.trim(), req.user.id);
+  const newToken = jwt.sign({ id: req.user.id, username: username.trim() }, JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token: newToken, username: username.trim() });
 });
 
 // ── Card routes ────────────────────────────────────────────────

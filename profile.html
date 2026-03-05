@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile — Don't Forget!</title>
+  <link rel="stylesheet" href="/css/shared.css" />
+  <style>
+    .profile-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2rem;
+      max-width: 480px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .profile-card h2 {
+      font-size: 1.25rem;
+      font-weight: normal;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .profile-field-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .profile-field-row .form-group {
+      flex: 1;
+    }
+
+    .profile-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      margin-top: 0.5rem;
+    }
+
+    .profile-success {
+      color: var(--status-done);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="page-content">
+    <main class="page-main">
+      <div class="profile-card">
+        <h2>Your Profile</h2>
+        <div class="profile-fields">
+
+          <div>
+            <div class="profile-field-row">
+              <div class="form-group">
+                <label for="profileUsername">Username</label>
+                <input type="text" id="profileUsername" autocomplete="username" />
+              </div>
+              <button class="btn-primary" id="saveUsernameBtn">Save</button>
+            </div>
+            <div class="profile-error" id="usernameError"></div>
+            <div class="profile-success" id="usernameSuccess"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="profileEmail">Email</label>
+            <input type="email" id="profileEmail" readonly />
+          </div>
+
+          <div class="form-group">
+            <label for="profilePassword">Password</label>
+            <input type="password" id="profilePassword" value="placeholder" readonly />
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  initSidebar('profile');
+
+  async function loadProfile() {
+    const user = await api('GET', '/profile/me');
+    if (!user) return;
+    document.getElementById('profileUsername').value = user.username;
+    document.getElementById('profileEmail').value = user.email || '';
+  }
+
+  document.getElementById('saveUsernameBtn').addEventListener('click', async () => {
+    const username = document.getElementById('profileUsername').value.trim();
+    const errorEl = document.getElementById('usernameError');
+    const successEl = document.getElementById('usernameSuccess');
+    errorEl.textContent = '';
+    successEl.textContent = '';
+
+    if (!username) { errorEl.textContent = 'Username is required.'; return; }
+
+    try {
+      const data = await api('PUT', '/profile/username', { username });
+      if (data) {
+        setAuth(data.token, data.username);
+        document.getElementById('profileUsername').value = data.username;
+        document.getElementById('sidebarUser').textContent = data.username;
+        successEl.textContent = 'Username updated.';
+      }
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
+
+  document.getElementById('profileUsername').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('saveUsernameBtn').click();
+  });
+
+  loadProfile();
+</script>
+</body>
+</html>
