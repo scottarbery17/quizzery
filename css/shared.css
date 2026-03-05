@@ -231,6 +231,36 @@ button:active { transform: scale(0.97); }
 
 .auth-form { display: flex; flex-direction: column; gap: 0.75rem; }
 
+.pw-wrap {
+  position: relative;
+  display: flex;
+}
+
+.pw-wrap input {
+  flex: 1;
+  padding-right: 3.25rem !important;
+}
+
+.btn-eye {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  border-radius: 0 6px 6px 0;
+  min-width: 2.75rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.btn-eye:hover { color: var(--text); }
+.btn-eye:active { transform: none; }
+
 .auth-form input {
   font-family: inherit;
   font-size: 0.95rem;
@@ -251,6 +281,27 @@ button:active { transform: scale(0.97); }
   margin-top: 0.25rem;
   padding: 0.65rem;
   font-size: 0.95rem;
+}
+
+.auth-forgot {
+  font-size: 0.8rem;
+  text-align: right;
+  margin-top: -0.25rem;
+}
+
+.auth-forgot a {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.auth-forgot a:hover { text-decoration: underline; }
+
+.auth-forgot-desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 0.25rem;
 }
 
 .auth-switch {

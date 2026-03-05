@@ -14,15 +14,34 @@
     <p class="auth-tagline">Bible Verse Memorization</p>
 
     <div class="auth-form" id="loginForm">
-      <input type="text" id="loginUsername" placeholder="Username" autocomplete="username" />
-      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" />
+      <input type="email" id="loginEmail" placeholder="Email address" autocomplete="email" />
+      <div class="pw-wrap">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" />
+        <button type="button" class="btn-eye" data-target="loginPassword">Show</button>
+      </div>
+      <p class="auth-forgot"><a id="showForgot">Forgot password?</a></p>
       <button class="btn-primary" id="loginBtn">Log In</button>
       <p class="auth-switch">No account? <a id="showSignup">Sign up</a></p>
     </div>
 
+    <div class="auth-form" id="forgotForm" style="display:none">
+      <p class="auth-forgot-desc">Enter your email and we'll send you a reset link.</p>
+      <input type="email" id="forgotEmail" placeholder="Email address" autocomplete="email" />
+      <button class="btn-primary" id="forgotBtn">Send Reset Link</button>
+      <p class="auth-switch"><a id="showLoginFromForgot">Back to login</a></p>
+    </div>
+
     <div class="auth-form" id="signupForm" style="display:none">
+      <input type="email" id="signupEmail" placeholder="Email address" autocomplete="email" />
       <input type="text" id="signupUsername" placeholder="Choose a username" autocomplete="username" />
-      <input type="password" id="signupPassword" placeholder="Choose a password (6+ chars)" autocomplete="new-password" />
+      <div class="pw-wrap">
+        <input type="password" id="signupPassword" placeholder="Password (6+ characters)" autocomplete="new-password" />
+        <button type="button" class="btn-eye" data-target="signupPassword">Show</button>
+      </div>
+      <div class="pw-wrap">
+        <input type="password" id="signupConfirm" placeholder="Confirm password" autocomplete="new-password" />
+        <button type="button" class="btn-eye" data-target="signupConfirm">Show</button>
+      </div>
       <button class="btn-primary" id="signupBtn">Create Account</button>
       <p class="auth-switch">Already have an account? <a id="showLogin">Log in</a></p>
     </div>
@@ -40,15 +59,32 @@
 
   function setAuthError(msg) { document.getElementById('authError').textContent = msg; }
 
-  async function handleAuth(type) {
-    const usernameEl = document.getElementById(type === 'login' ? 'loginUsername' : 'signupUsername');
-    const passwordEl = document.getElementById(type === 'login' ? 'loginPassword' : 'signupPassword');
-    const username = usernameEl.value.trim();
-    const password = passwordEl.value;
-    if (!username || !password) { setAuthError('Please enter a username and password.'); return; }
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  async function handleForgot() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) { setAuthError('Please enter your email address.'); return; }
+    setAuthError('');
+    document.getElementById('forgotBtn').disabled = true;
+    try {
+      await api('POST', '/auth/forgot-password', { email });
+    } catch {}
+    // Always show success to prevent email enumeration
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('authError').style.color = 'var(--primary)';
+    setAuthError('If an account with that email exists, a reset link is on its way.');
+    document.getElementById('forgotBtn').disabled = false;
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { setAuthError('Please enter your email and password.'); return; }
     setAuthError('');
     try {
-      const data = await api('POST', `/auth/${type}`, { username, password });
+      const data = await api('POST', '/auth/login', { email, password });
       if (!data) return;
       setAuth(data.token, data.username);
       window.location.href = '/memorize';
@@ -57,36 +93,107 @@
     }
   }
 
-  document.getElementById('loginBtn').addEventListener('click', () => handleAuth('login'));
-  document.getElementById('signupBtn').addEventListener('click', () => handleAuth('signup'));
+  async function handleSignup() {
+    const email    = document.getElementById('signupEmail').value.trim();
+    const username = document.getElementById('signupUsername').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirm  = document.getElementById('signupConfirm').value;
 
-  document.getElementById('loginPassword').addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleAuth('login');
+    if (!email)    { setAuthError('Email is required.'); return; }
+    if (!isValidEmail(email)) { setAuthError('Please enter a valid email address.'); return; }
+    if (!username) { setAuthError('Username is required.'); return; }
+    if (!password) { setAuthError('Password is required.'); return; }
+    if (password.length < 6) { setAuthError('Password must be at least 6 characters.'); return; }
+    if (password !== confirm) { setAuthError('Passwords do not match.'); return; }
+
+    setAuthError('');
+    try {
+      const data = await api('POST', '/auth/signup', { email, username, password });
+      if (!data) return;
+      setAuth(data.token, data.username);
+      window.location.href = '/memorize';
+    } catch (err) {
+      setAuthError(err.message);
+    }
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', handleLogin);
+  document.getElementById('signupBtn').addEventListener('click', handleSignup);
+  document.getElementById('forgotBtn').addEventListener('click', handleForgot);
+  document.getElementById('forgotEmail').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleForgot();
   });
-  document.getElementById('signupPassword').addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleAuth('signup');
+
+  // Eye toggles
+  document.querySelectorAll('.btn-eye').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+      }
+    });
   });
-  document.getElementById('loginUsername').addEventListener('keydown', e => {
+
+  // Keyboard navigation — login
+  document.getElementById('loginEmail').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+  });
+  document.getElementById('loginPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  // Keyboard navigation — signup
+  document.getElementById('signupEmail').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('signupUsername').focus();
   });
   document.getElementById('signupUsername').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('signupPassword').focus();
+  });
+  document.getElementById('signupPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('signupConfirm').focus();
+  });
+  document.getElementById('signupConfirm').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSignup();
+  });
+
+  document.getElementById('showForgot').addEventListener('click', e => {
+    e.preventDefault();
+    setAuthError('');
+    document.getElementById('authError').style.color = '';
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('forgotForm').style.display = 'flex';
+    document.getElementById('forgotEmail').focus();
+  });
+
+  document.getElementById('showLoginFromForgot').addEventListener('click', e => {
+    e.preventDefault();
+    setAuthError('');
+    document.getElementById('authError').style.color = '';
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('loginForm').style.display = 'flex';
+    document.getElementById('loginEmail').focus();
   });
 
   document.getElementById('showSignup').addEventListener('click', e => {
     e.preventDefault();
     setAuthError('');
+    document.getElementById('authError').style.color = '';
     document.getElementById('loginForm').style.display = 'none';
     document.getElementById('signupForm').style.display = 'flex';
-    document.getElementById('signupUsername').focus();
+    document.getElementById('signupEmail').focus();
   });
 
   document.getElementById('showLogin').addEventListener('click', e => {
     e.preventDefault();
     setAuthError('');
+    document.getElementById('authError').style.color = '';
     document.getElementById('signupForm').style.display = 'none';
     document.getElementById('loginForm').style.display = 'flex';
-    document.getElementById('loginUsername').focus();
+    document.getElementById('loginEmail').focus();
   });
 </script>
 </body>

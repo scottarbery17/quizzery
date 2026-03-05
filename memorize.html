@@ -427,6 +427,28 @@
       border-color: var(--status-done);
     }
 
+    /* ── Quiz controls ────────────────────────────────────────── */
+    .quiz-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .btn-shuffle {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 0.3rem 0.9rem;
+      font-size: 0.8rem;
+      border-radius: 20px;
+    }
+
+    .btn-shuffle:hover:not(.active) { background: var(--border); color: var(--text); }
+    .btn-shuffle.active { background: var(--primary); color: #fff; }
+
     /* ── Quiz progress bars ───────────────────────────────────── */
     .quiz-progress-wrap {
       width: 100%;
@@ -579,6 +601,16 @@
           <div class="quiz-mode-bar">
             <button class="quiz-mode-btn active" id="qzModeRef">Reference first</button>
             <button class="quiz-mode-btn" id="qzModeVerse">Verse first</button>
+          </div>
+          <div class="quiz-controls">
+            <div class="filter-bar">
+              <button class="filter-btn active" data-qzfilter="all">All</button>
+              <button class="filter-btn" data-qzfilter="unseen">Unseen</button>
+              <button class="filter-btn" data-qzfilter="seen">Seen</button>
+              <button class="filter-btn" data-qzfilter="unmemorized">Unmemorized</button>
+              <button class="filter-btn" data-qzfilter="memorized">Memorized</button>
+            </div>
+            <button class="btn-shuffle" id="qzShuffle">Randomize</button>
           </div>
           <div class="quiz-counter" id="qzCounter"></div>
           <div class="quiz-card">
@@ -907,6 +939,9 @@
   // ── Quiz view ──────────────────────────────────────────────────
   let quizMode = 'reference'; // 'reference' | 'verse'
   let quizIndex = 0;
+  let quizCards = [];
+  let quizFilter = 'all';
+  let quizRandomized = false;
   let recognizedSet = new Set();
 
   function recognizedKey() {
@@ -936,7 +971,7 @@
   }
 
   function updateMemoBtn() {
-    const card = cards[quizIndex];
+    const card = quizCards[quizIndex];
     if (!card) return;
     const btn = document.getElementById('qzMarkMemo');
     if (quizMode === 'reference') {
@@ -958,7 +993,24 @@
     }
   }
 
+  function buildQuizCards() {
+    let pool =
+      quizFilter === 'seen'        ? cards.filter(c => c.seen) :
+      quizFilter === 'unseen'      ? cards.filter(c => !c.seen) :
+      quizFilter === 'memorized'   ? cards.filter(c => c.memorized) :
+      quizFilter === 'unmemorized' ? cards.filter(c => !c.memorized) :
+      [...cards];
+    if (quizRandomized) {
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+    }
+    quizCards = pool;
+  }
+
   function initQuiz() {
+    buildQuizCards();
     quizIndex = 0;
     renderQuiz();
   }
@@ -970,30 +1022,30 @@
     document.getElementById('qzAnswer').disabled = false;
     document.getElementById('qzCheck').style.display = '';
 
-    if (cards.length === 0) {
+    if (quizCards.length === 0) {
       document.getElementById('qzCounter').textContent = 'No cards';
-      document.getElementById('qzPrompt').textContent = 'Add some cards first.';
+      document.getElementById('qzPrompt').textContent = cards.length === 0 ? 'Add some cards first.' : 'No cards match the current filter.';
       document.getElementById('qzPrev').disabled = true;
       document.getElementById('qzNext').disabled = true;
       return;
     }
 
-    if (quizIndex >= cards.length) quizIndex = cards.length - 1;
-    const card = cards[quizIndex];
+    if (quizIndex >= quizCards.length) quizIndex = quizCards.length - 1;
+    const card = quizCards[quizIndex];
     const isRef = quizMode === 'reference';
 
-    document.getElementById('qzCounter').textContent = `${quizIndex + 1} / ${cards.length}`;
+    document.getElementById('qzCounter').textContent = `${quizIndex + 1} / ${quizCards.length}`;
     document.getElementById('qzPromptLabel').textContent = isRef ? 'Reference' : 'Verse';
     document.getElementById('qzPrompt').textContent = isRef ? card.front : card.back;
     document.getElementById('qzAnswerLabel').textContent = isRef ? 'Type the verse:' : 'Type the reference:';
     document.getElementById('qzPrev').disabled = quizIndex === 0;
-    document.getElementById('qzNext').disabled = quizIndex === cards.length - 1;
+    document.getElementById('qzNext').disabled = quizIndex === quizCards.length - 1;
     document.getElementById('qzAnswer').focus();
     updateQuizProgress();
   }
 
   document.getElementById('qzCheck').addEventListener('click', () => {
-    const card = cards[quizIndex];
+    const card = quizCards[quizIndex];
     if (!card) return;
     const correct = quizMode === 'reference' ? card.back : card.front;
     document.getElementById('qzCorrect').textContent = correct;
@@ -1004,7 +1056,7 @@
   });
 
   document.getElementById('qzMarkMemo').addEventListener('click', async () => {
-    const card = cards[quizIndex];
+    const card = quizCards[quizIndex];
     if (!card) return;
 
     if (quizMode === 'reference') {
@@ -1054,6 +1106,21 @@
     document.getElementById('qzModeVerse').classList.add('active');
     document.getElementById('qzModeRef').classList.remove('active');
     renderQuiz();
+  });
+
+  document.querySelectorAll('[data-qzfilter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-qzfilter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      quizFilter = btn.dataset.qzfilter;
+      initQuiz();
+    });
+  });
+
+  document.getElementById('qzShuffle').addEventListener('click', () => {
+    quizRandomized = !quizRandomized;
+    document.getElementById('qzShuffle').classList.toggle('active', quizRandomized);
+    initQuiz();
   });
 
   // ── Init ───────────────────────────────────────────────────────

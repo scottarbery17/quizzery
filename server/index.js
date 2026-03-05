@@ -1,12 +1,15 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const path = require('path');
+const { Resend } = require('resend');
 const DEFAULT_CARDS = require('./seeds');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'quizzery-jwt-secret-change-in-production';
 const PORT = process.env.PORT || 3000;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ── Database setup ─────────────────────────────────────────────
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'quizzery.db');
@@ -18,6 +21,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL COLLATE NOCASE,
+    email TEXT,
     password_hash TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -42,11 +46,21 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    expires_at INTEGER NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
 
 // ── Migrate existing databases ─────────────────────────────────
 try { db.exec('ALTER TABLE cards ADD COLUMN seen INTEGER NOT NULL DEFAULT 0'); } catch {}
 try { db.exec('ALTER TABLE cards ADD COLUMN memorized INTEGER NOT NULL DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch {}
 
 // ── App setup ──────────────────────────────────────────────────
 const app = express();
@@ -60,6 +74,10 @@ app.get('/memorize', (req, res) => {
 
 app.get('/read', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'read.html'));
+});
+
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'reset-password.html'));
 });
 
 // ── Auth middleware ────────────────────────────────────────────
@@ -78,9 +96,12 @@ function requireAuth(req, res, next) {
 
 // ── Auth routes ────────────────────────────────────────────────
 app.post('/auth/signup', async (req, res) => {
-  const { username, password } = req.body ?? {};
-  if (!username?.trim() || !password) {
-    return res.status(400).json({ error: 'Username and password are required.' });
+  const { username, password, email } = req.body ?? {};
+  if (!email?.trim() || !username?.trim() || !password) {
+    return res.status(400).json({ error: 'Email, username, and password are required.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
   if (username.trim().length < 2) {
     return res.status(400).json({ error: 'Username must be at least 2 characters.' });
@@ -96,8 +117,8 @@ app.post('/auth/signup', async (req, res) => {
 
   const hash = await bcrypt.hash(password, 10);
   const { lastInsertRowid: userId } = db.prepare(
-    'INSERT INTO users (username, password_hash) VALUES (?, ?)'
-  ).run(username.trim(), hash);
+    'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)'
+  ).run(username.trim(), email.trim(), hash);
 
   // Seed default cards in a transaction
   const insertCard = db.prepare(
@@ -114,14 +135,14 @@ app.post('/auth/signup', async (req, res) => {
 });
 
 app.post('/auth/login', async (req, res) => {
-  const { username, password } = req.body ?? {};
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required.' });
+  const { email, password } = req.body ?? {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.trim());
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim());
   if (!user) {
-    return res.status(401).json({ error: 'Invalid username or password.' });
+    return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
   const valid = await bcrypt.compare(password, user.password_hash);
@@ -131,6 +152,47 @@ app.post('/auth/login', async (req, res) => {
 
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, username: user.username });
+});
+
+app.post('/auth/forgot-password', async (req, res) => {
+  const { email } = req.body ?? {};
+  res.json({ ok: true }); // always 200 to prevent email enumeration
+  if (!email) return;
+  const user = db.prepare('SELECT id, username FROM users WHERE email = ?').get(email.trim());
+  if (!user) return;
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+  db.prepare('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)')
+    .run(user.id, token, expiresAt);
+
+  const resetUrl = `https://dontforgetbible.com/reset-password?token=${token}`;
+  await resend.emails.send({
+    from: 'Quizzery <noreply@dontforgetbible.com>',
+    to: email.trim(),
+    subject: 'Reset your Quizzery password',
+    html: `<p>Hi ${user.username},</p>
+           <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+           <p><a href="${resetUrl}">${resetUrl}</a></p>
+           <p>If you didn't request this, you can ignore this email.</p>`,
+  });
+});
+
+app.post('/auth/reset-password', async (req, res) => {
+  const { token, password } = req.body ?? {};
+  if (!token || !password) return res.status(400).json({ error: 'Token and password are required.' });
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+
+  const row = db.prepare('SELECT * FROM password_reset_tokens WHERE token = ?').get(token);
+  if (!row) return res.status(400).json({ error: 'Invalid or expired reset link.' });
+  if (row.used) return res.status(400).json({ error: 'This reset link has already been used.' });
+  if (Date.now() > row.expires_at) return res.status(400).json({ error: 'This reset link has expired.' });
+
+  const hash = await bcrypt.hash(password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, row.user_id);
+  db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').run(row.id);
+
+  res.json({ ok: true });
 });
 
 // ── Card routes ────────────────────────────────────────────────
