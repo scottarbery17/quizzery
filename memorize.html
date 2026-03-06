@@ -179,45 +179,7 @@
     .empty-state p:first-child { font-size: 1.1rem; margin-bottom: 0.5rem; }
     .empty-state p:last-child { font-size: 0.85rem; }
 
-    .btn-reset { padding: 0.5rem 1.1rem; font-size: 0.9rem; }
-
-    .btn-secondary {
-      background: transparent;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-      padding: 0.5rem 1.1rem;
-      font-size: 0.9rem;
-      border-radius: 6px;
-    }
-    .btn-secondary:hover { background: var(--primary); color: #fff; }
-
     .card-item.nailed-item { border-color: #d4a017; box-shadow: 0 0 0 1px #d4a017, 0 1px 4px rgba(212,160,23,0.2); }
-
-    .confirm-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 500;
-    }
-
-    .confirm-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 360px;
-      width: 90%;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .confirm-msg { font-size: 1rem; line-height: 1.5; text-align: center; }
-    .confirm-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
     /* ── Tabs ─────────────────────────────────────────────────── */
     .tab-bar {
@@ -564,8 +526,6 @@
               <button class="filter-btn" data-filter="memorized">Memorized</button>
             </div>
           </div>
-          <button class="btn-secondary" id="restoreDefaultsBtn">Restore Defaults</button>
-          <button class="btn-danger btn-reset" id="resetBtn">Reset</button>
           <button class="btn-primary" id="toggleAddBtn">+ Add Card</button>
         </div>
 
@@ -1259,45 +1219,6 @@
     initQuiz();
   });
 
-  // ── Restore Defaults ───────────────────────────────────────────
-  document.getElementById('restoreDefaultsBtn').addEventListener('click', async () => {
-    try {
-      const result = await api('POST', '/cards/seed');
-      if (result.added === 0) {
-        alert('All default cards are already present.');
-      } else {
-        await loadCards();
-      }
-    } catch (err) { alert(err.message); }
-  });
-
-  // ── Reset ──────────────────────────────────────────────────────
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    document.getElementById('confirmOverlay').style.display = 'flex';
-  });
-
-  document.getElementById('confirmCancel').addEventListener('click', () => {
-    document.getElementById('confirmOverlay').style.display = 'none';
-  });
-
-  document.getElementById('confirmYes').addEventListener('click', async () => {
-    document.getElementById('confirmOverlay').style.display = 'none';
-    try {
-      await api('POST', '/cards/reset');
-      for (const card of cards) {
-        card.seen = 0;
-        card.memorized = 0;
-        card.seen_at = null;
-        card.memorized_at = null;
-        card.nailed = 0;
-        card.nailed_at = null;
-      }
-      render();
-      updateSummary();
-      updateFcProgress();
-    } catch (err) { alert(err.message); }
-  });
-
   // ── Nailed it! helpers ──────────────────────────────────────────
   function isNailedIt(userAnswer, correct) {
     const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/).filter(Boolean);
@@ -1373,14 +1294,5 @@
   loadCards();
 </script>
 
-<div class="confirm-overlay" id="confirmOverlay" style="display:none">
-  <div class="confirm-box">
-    <p class="confirm-msg">Would you like to reset the status of all of your cards?</p>
-    <div class="confirm-actions">
-      <button class="btn-cancel" id="confirmCancel">Cancel</button>
-      <button class="btn-danger" id="confirmYes">Yes</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>

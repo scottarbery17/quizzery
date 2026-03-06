@@ -296,29 +296,6 @@ app.delete('/cards/:id', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/cards/reset', requireAuth, (req, res) => {
-  db.prepare(
-    'UPDATE cards SET seen = 0, memorized = 0, seen_at = NULL, memorized_at = NULL, nailed = 0, nailed_at = NULL WHERE user_id = ?'
-  ).run(req.user.id);
-  res.json({ ok: true });
-});
-
-app.post('/cards/seed', requireAuth, (req, res) => {
-  const existing = db.prepare('SELECT front FROM cards WHERE user_id = ?').all(req.user.id);
-  const existingFronts = new Set(existing.map(c => c.front));
-  const insertCard = db.prepare('INSERT INTO cards (user_id, front, back) VALUES (?, ?, ?)');
-  let added = 0;
-  db.transaction(() => {
-    for (const card of DEFAULT_CARDS) {
-      if (!existingFronts.has(card.front)) {
-        insertCard.run(req.user.id, card.front, card.back);
-        added++;
-      }
-    }
-  })();
-  res.json({ added });
-});
-
 // ── Readings routes ────────────────────────────────────────────
 app.get('/readings', requireAuth, (req, res) => {
   const readings = db.prepare(
