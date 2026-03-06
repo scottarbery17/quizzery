@@ -113,6 +113,8 @@
     .status-badge.unmemorized { background: #e8e4da; color: #7a7060; }
     .status-badge.memorized   { background: var(--status-done-bg); color: var(--status-done); }
     .status-badge.nailed      { background: #fff3cd; color: #b8860b; font-size: 0.72rem; }
+    .status-badge.clickable   { cursor: pointer; transition: opacity 0.15s; }
+    .status-badge.clickable:hover { opacity: 0.7; }
 
     .btn-mark-seen {
       background: transparent;
@@ -768,8 +770,8 @@
           <div class="field-value">${escHtml(card.back)}</div>
         </div>
         <div class="card-status">
-          <span class="status-badge ${card.seen ? 'seen' : 'unseen'}">${card.seen ? 'Seen' + (card.seen_at ? ' ' + fmtDate(card.seen_at) : '') : 'Unseen'}</span>
-          <span class="status-badge ${card.memorized ? 'memorized' : 'unmemorized'}">${card.memorized ? 'Memorized' + (card.memorized_at ? ' ' + fmtDate(card.memorized_at) : '') : 'Unmemorized'}</span>
+          <span class="status-badge clickable ${card.seen ? 'seen' : 'unseen'}" data-action="toggle-seen" data-id="${card.id}">${card.seen ? 'Seen' + (card.seen_at ? ' ' + fmtDate(card.seen_at) : '') : 'Unseen'}</span>
+          <span class="status-badge clickable ${card.memorized ? 'memorized' : 'unmemorized'}" data-action="toggle-memorized" data-id="${card.id}">${card.memorized ? 'Memorized' + (card.memorized_at ? ' ' + fmtDate(card.memorized_at) : '') : 'Unmemorized'}</span>
           ${card.nailed ? `<span class="status-badge nailed">&#128296; Nailed it!</span>` : ''}
         </div>
         <div class="card-actions">
@@ -810,8 +812,11 @@
     try {
       const card = await api('POST', '/cards', { front: front || '(empty)', back: back || '(empty)' });
       if (card) {
-        cards.push(card);
+        cards.unshift(card);
+        buildFcCards();
         render();
+        updateFcProgress();
+        updateQuizProgress();
         clearForm();
         addForm.classList.remove('open');
       }
@@ -840,7 +845,10 @@
       try {
         await api('DELETE', `/cards/${id}`);
         cards = cards.filter(c => c.id !== id);
+        buildFcCards();
         render();
+        updateFcProgress();
+        updateQuizProgress();
       } catch (err) { alert(err.message); }
 
     } else if (action === 'save-edit') {
@@ -861,6 +869,26 @@
 
     } else if (action === 'cancel-edit') {
       render();
+
+    } else if (action === 'toggle-seen') {
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      const newVal = card.seen ? 0 : 1;
+      card.seen = newVal;
+      card.seen_at = newVal ? new Date().toISOString() : null;
+      render();
+      updateFcProgress();
+      api('PUT', `/cards/${id}`, { seen: newVal }).catch(() => loadCards());
+
+    } else if (action === 'toggle-memorized') {
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      const newVal = card.memorized ? 0 : 1;
+      card.memorized = newVal;
+      card.memorized_at = newVal ? new Date().toISOString() : null;
+      render();
+      updateQuizProgress();
+      api('PUT', `/cards/${id}`, { memorized: newVal }).catch(() => loadCards());
     }
   });
 
@@ -907,7 +935,7 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'flashcards') renderFlashcard();
+      if (btn.dataset.tab === 'flashcards') { buildFcCards(); renderFlashcard(); }
       else if (btn.dataset.tab === 'quiz') initQuiz();
     });
   });

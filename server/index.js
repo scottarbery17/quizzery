@@ -235,7 +235,7 @@ app.put('/profile/username', requireAuth, async (req, res) => {
 // ── Card routes ────────────────────────────────────────────────
 app.get('/cards', requireAuth, (req, res) => {
   const cards = db.prepare(
-    'SELECT id, front, back, seen, memorized, seen_at, memorized_at, nailed, nailed_at FROM cards WHERE user_id = ? ORDER BY id'
+    'SELECT id, front, back, seen, memorized, seen_at, memorized_at, nailed, nailed_at FROM cards WHERE user_id = ? ORDER BY id DESC'
   ).all(req.user.id);
   res.json(cards);
 });
