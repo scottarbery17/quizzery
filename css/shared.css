@@ -1,5 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
 :root {
   --bg: #f5f0e8;
   --surface: #ffffff;
@@ -91,11 +93,10 @@ button:active { transform: scale(0.97); }
 }
 
 .sidebar-subtitle {
+  font-family: "Great Vibes", cursive;
   font-size: 0.75rem;
   opacity: 0.65;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
-  display: block;
   margin-top: 0.1rem;
 }
 
@@ -253,10 +254,11 @@ button:active { transform: scale(0.97); }
 }
 
 .auth-tagline {
-  color: var(--muted);
-  font-style: italic;
-  font-size: 0.88rem;
-  margin-bottom: 2rem;
+  font-family: "Great Vibes", cursive;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  letter-spacing: 0.06em;
+  margin-top: 0.1rem;
 }
 
 .auth-form { display: flex; flex-direction: column; gap: 0.75rem; }
