@@ -35,6 +35,8 @@ db.exec(`
     memorized INTEGER NOT NULL DEFAULT 0,
     seen_at TEXT,
     memorized_at TEXT,
+    nailed INTEGER NOT NULL DEFAULT 0,
+    nailed_at TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
@@ -65,6 +67,8 @@ try { db.exec('ALTER TABLE cards ADD COLUMN memorized INTEGER NOT NULL DEFAULT 0
 try { db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch {}
 try { db.exec('ALTER TABLE cards ADD COLUMN seen_at TEXT'); } catch {}
 try { db.exec('ALTER TABLE cards ADD COLUMN memorized_at TEXT'); } catch {}
+try { db.exec('ALTER TABLE cards ADD COLUMN nailed INTEGER NOT NULL DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE cards ADD COLUMN nailed_at TEXT'); } catch {}
 
 // ── App setup ──────────────────────────────────────────────────
 const app = express();
@@ -231,7 +235,7 @@ app.put('/profile/username', requireAuth, async (req, res) => {
 // ── Card routes ────────────────────────────────────────────────
 app.get('/cards', requireAuth, (req, res) => {
   const cards = db.prepare(
-    'SELECT id, front, back, seen, memorized, seen_at, memorized_at FROM cards WHERE user_id = ? ORDER BY id'
+    'SELECT id, front, back, seen, memorized, seen_at, memorized_at, nailed, nailed_at FROM cards WHERE user_id = ? ORDER BY id'
   ).all(req.user.id);
   res.json(cards);
 });
@@ -270,11 +274,18 @@ app.put('/cards/:id', requireAuth, (req, res) => {
     else if (!req.body.memorized) memorizedAt = null;
   }
 
-  db.prepare(
-    'UPDATE cards SET front = ?, back = ?, seen = ?, memorized = ?, seen_at = ?, memorized_at = ? WHERE id = ?'
-  ).run(front, back, seen, memorized, seenAt, memorizedAt, card.id);
+  const nailed = req.body.nailed !== undefined ? req.body.nailed : card.nailed;
+  let nailedAt = card.nailed_at ?? null;
+  if (req.body.nailed !== undefined) {
+    if (req.body.nailed && !card.nailed) nailedAt = new Date().toISOString();
+    else if (!req.body.nailed) nailedAt = null;
+  }
 
-  res.json({ id: card.id, front, back, seen, memorized, seen_at: seenAt, memorized_at: memorizedAt });
+  db.prepare(
+    'UPDATE cards SET front = ?, back = ?, seen = ?, memorized = ?, seen_at = ?, memorized_at = ?, nailed = ?, nailed_at = ? WHERE id = ?'
+  ).run(front, back, seen, memorized, seenAt, memorizedAt, nailed, nailedAt, card.id);
+
+  res.json({ id: card.id, front, back, seen, memorized, seen_at: seenAt, memorized_at: memorizedAt, nailed, nailed_at: nailedAt });
 });
 
 app.delete('/cards/:id', requireAuth, (req, res) => {
@@ -283,6 +294,13 @@ app.delete('/cards/:id', requireAuth, (req, res) => {
   ).run(req.params.id, req.user.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Card not found.' });
   res.json({ success: true });
+});
+
+app.post('/cards/reset', requireAuth, (req, res) => {
+  db.prepare(
+    'UPDATE cards SET seen = 0, memorized = 0, seen_at = NULL, memorized_at = NULL, nailed = 0, nailed_at = NULL WHERE user_id = ?'
+  ).run(req.user.id);
+  res.json({ ok: true });
 });
 
 // ── Readings routes ────────────────────────────────────────────

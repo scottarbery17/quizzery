@@ -67,7 +67,7 @@
       border-radius: 10px;
       padding: 1rem 1.25rem;
       display: grid;
-      grid-template-columns: 1fr 1fr auto auto;
+      grid-template-columns: 1fr 2fr auto auto;
       align-items: center;
       gap: 1rem;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
@@ -112,6 +112,7 @@
     .status-badge.seen        { background: var(--status-learning-bg); color: var(--status-learning); }
     .status-badge.unmemorized { background: #e8e4da; color: #7a7060; }
     .status-badge.memorized   { background: var(--status-done-bg); color: var(--status-done); }
+    .status-badge.nailed      { background: #fff3cd; color: #b8860b; font-size: 0.72rem; }
 
     .btn-mark-seen {
       background: transparent;
@@ -177,6 +178,36 @@
     .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
     .empty-state p:first-child { font-size: 1.1rem; margin-bottom: 0.5rem; }
     .empty-state p:last-child { font-size: 0.85rem; }
+
+    .btn-reset { padding: 0.5rem 1.1rem; font-size: 0.9rem; }
+
+    .card-item.nailed-item { border-color: #d4a017; box-shadow: 0 0 0 1px #d4a017, 0 1px 4px rgba(212,160,23,0.2); }
+
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 360px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .confirm-msg { font-size: 1rem; line-height: 1.5; text-align: center; }
+    .confirm-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
     /* ── Tabs ─────────────────────────────────────────────────── */
     .tab-bar {
@@ -488,6 +519,9 @@
       transition: width 0.35s ease;
     }
 
+    .quiz-progress-bar.gold-track { background: #f5e6a3; }
+    .quiz-progress-fill.gold { background: #d4a017; }
+
     @media (max-width: 600px) {
       .card-item { grid-template-columns: 1fr auto auto; }
       .card-item .card-field:nth-child(2) { display: none; }
@@ -520,6 +554,7 @@
               <button class="filter-btn" data-filter="memorized">Memorized</button>
             </div>
           </div>
+          <button class="btn-danger btn-reset" id="resetBtn">Reset</button>
           <button class="btn-primary" id="toggleAddBtn">+ Add Card</button>
         </div>
 
@@ -575,6 +610,7 @@
           <div class="fc-status-row">
             <span id="fcSeenBadge" class="status-badge"></span>
             <span id="fcMemoBadge" class="status-badge"></span>
+            <span id="fcNailedBadge" class="status-badge" style="display:none"></span>
             <button class="btn-mark-seen" id="fcMarkSeen">Mark as Seen</button>
           </div>
           <div class="fc-progress-wrap">
@@ -648,6 +684,15 @@
                 <div class="quiz-progress-fill" id="qzProgressVerseFill" style="width:0%"></div>
               </div>
             </div>
+            <div class="quiz-progress-section">
+              <div class="quiz-progress-header">
+                <span>&#128296; Nailed it!</span>
+                <span id="qzProgressNailedCount">0 / 0 nailed</span>
+              </div>
+              <div class="quiz-progress-bar gold-track">
+                <div class="quiz-progress-fill gold" id="qzProgressNailedFill" style="width:0%"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div><!-- /tab-quiz -->
@@ -707,7 +752,7 @@
     }
 
     list.innerHTML = filtered.map(card => `
-      <div class="card-item" data-id="${card.id}">
+      <div class="card-item${card.nailed ? ' nailed-item' : ''}" data-id="${card.id}">
         <div class="card-field">
           <div class="field-label">Front</div>
           <div class="field-value">${escHtml(card.front)}</div>
@@ -719,6 +764,7 @@
         <div class="card-status">
           <span class="status-badge ${card.seen ? 'seen' : 'unseen'}">${card.seen ? 'Seen' + (card.seen_at ? ' ' + fmtDate(card.seen_at) : '') : 'Unseen'}</span>
           <span class="status-badge ${card.memorized ? 'memorized' : 'unmemorized'}">${card.memorized ? 'Memorized' + (card.memorized_at ? ' ' + fmtDate(card.memorized_at) : '') : 'Unmemorized'}</span>
+          ${card.nailed ? `<span class="status-badge nailed">&#128296; Nailed it!</span>` : ''}
         </div>
         <div class="card-actions">
           <button class="btn-edit" data-action="edit" data-id="${card.id}">Edit</button>
@@ -913,6 +959,15 @@
     const markBtn = document.getElementById('fcMarkSeen');
     markBtn.textContent = card.seen ? 'Mark as Unseen' : 'Mark as Seen';
     markBtn.classList.toggle('seen-state', !!card.seen);
+
+    const nailedBadge = document.getElementById('fcNailedBadge');
+    if (card.nailed) {
+      nailedBadge.textContent = '\u{1F528} Nailed it!';
+      nailedBadge.className = 'status-badge nailed';
+      nailedBadge.style.display = '';
+    } else {
+      nailedBadge.style.display = 'none';
+    }
   }
 
   function updateFcProgress() {
@@ -1003,15 +1058,19 @@
 
   function updateQuizProgress() {
     const total = cards.length;
-    const refCount   = cards.filter(c => c.memorized).length;
-    const verseCount = recognizedSet.size;
-    const refPct   = total ? (refCount / total * 100) : 0;
-    const versePct = total ? (verseCount / total * 100) : 0;
+    const refCount    = cards.filter(c => c.memorized).length;
+    const verseCount  = recognizedSet.size;
+    const nailedCount = cards.filter(c => c.nailed).length;
+    const refPct    = total ? (refCount / total * 100) : 0;
+    const versePct  = total ? (verseCount / total * 100) : 0;
+    const nailedPct = total ? (nailedCount / total * 100) : 0;
 
-    document.getElementById('qzProgressRefCount').textContent   = `${refCount} / ${total} memorized`;
-    document.getElementById('qzProgressVerseCount').textContent = `${verseCount} / ${total} recognized`;
-    document.getElementById('qzProgressRefFill').style.width   = `${refPct}%`;
-    document.getElementById('qzProgressVerseFill').style.width = `${versePct}%`;
+    document.getElementById('qzProgressRefCount').textContent    = `${refCount} / ${total} memorized`;
+    document.getElementById('qzProgressVerseCount').textContent  = `${verseCount} / ${total} recognized`;
+    document.getElementById('qzProgressNailedCount').textContent = `${nailedCount} / ${total} nailed`;
+    document.getElementById('qzProgressRefFill').style.width    = `${refPct}%`;
+    document.getElementById('qzProgressVerseFill').style.width  = `${versePct}%`;
+    document.getElementById('qzProgressNailedFill').style.width = `${nailedPct}%`;
   }
 
   function updateMemoBtn() {
@@ -1088,7 +1147,7 @@
     updateQuizProgress();
   }
 
-  document.getElementById('qzCheck').addEventListener('click', () => {
+  document.getElementById('qzCheck').addEventListener('click', async () => {
     const card = quizCards[quizIndex];
     if (!card) return;
     const correct = quizMode === 'reference' ? card.back : card.front;
@@ -1098,8 +1157,26 @@
     document.getElementById('qzAnswer').disabled = true;
     document.getElementById('qzCheck').style.display = 'none';
     updateMemoBtn();
-    if (quizMode === 'reference' && userAnswer.trim() === card.back.trim()) {
+
+    if (quizMode === 'reference' && isNailedIt(userAnswer, card.back)) {
       launchConfetti();
+      showNailedItText();
+
+      if (!card.memorized) {
+        card.memorized = 1;
+        updateMemoBtn();
+        updateQuizProgress();
+        updateSummary();
+        api('PUT', `/cards/${card.id}`, { memorized: 1 }).catch(() => loadCards());
+      }
+
+      if (!card.nailed) {
+        card.nailed = 1;
+        card.nailed_at = new Date().toISOString();
+        updateQuizProgress();
+        render();
+        api('PUT', `/cards/${card.id}`, { nailed: 1 }).catch(() => loadCards());
+      }
     }
   });
 
@@ -1171,6 +1248,60 @@
     initQuiz();
   });
 
+  // ── Reset ──────────────────────────────────────────────────────
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('confirmOverlay').style.display = 'flex';
+  });
+
+  document.getElementById('confirmCancel').addEventListener('click', () => {
+    document.getElementById('confirmOverlay').style.display = 'none';
+  });
+
+  document.getElementById('confirmYes').addEventListener('click', async () => {
+    document.getElementById('confirmOverlay').style.display = 'none';
+    try {
+      await api('POST', '/cards/reset');
+      for (const card of cards) {
+        card.seen = 0;
+        card.memorized = 0;
+        card.seen_at = null;
+        card.memorized_at = null;
+        card.nailed = 0;
+        card.nailed_at = null;
+      }
+      render();
+      updateSummary();
+      updateFcProgress();
+    } catch (err) { alert(err.message); }
+  });
+
+  // ── Nailed it! helpers ──────────────────────────────────────────
+  function isNailedIt(userAnswer, correct) {
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/).filter(Boolean);
+    const a = norm(userAnswer), b = norm(correct);
+    return a.length > 0 && a.length === b.length && a.every((w, i) => w === b[i]);
+  }
+
+  function showNailedItText() {
+    const el = document.createElement('div');
+    el.textContent = 'Nailed it!';
+    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.7);' +
+      'font-size:5rem;font-weight:900;color:#d4a017;' +
+      'text-shadow:0 2px 12px rgba(0,0,0,0.25),0 0 40px rgba(212,160,23,0.5);' +
+      'pointer-events:none;z-index:10000;opacity:0;' +
+      'transition:opacity 0.25s ease,transform 0.25s ease;white-space:nowrap;';
+    document.body.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,-50%) scale(1)';
+    }));
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%,-50%) scale(1.1)';
+      setTimeout(() => el.remove(), 300);
+    }, 1600);
+  }
+
   // ── Confetti ────────────────────────────────────────────────────
   function launchConfetti() {
     const canvas = document.createElement('canvas');
@@ -1218,5 +1349,15 @@
   // ── Init ───────────────────────────────────────────────────────
   loadCards();
 </script>
+
+<div class="confirm-overlay" id="confirmOverlay" style="display:none">
+  <div class="confirm-box">
+    <p class="confirm-msg">Would you like to reset the status of all of your cards?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" id="confirmCancel">Cancel</button>
+      <button class="btn-danger" id="confirmYes">Yes</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
