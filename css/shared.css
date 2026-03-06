@@ -1,6 +1,6 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --bg: #f5f0e8;
@@ -93,8 +93,9 @@ button:active { transform: scale(0.97); }
 }
 
 .sidebar-subtitle {
-  font-family: "Great Vibes", cursive;
+  font-family: "Alex Brush", cursive;
   font-size: 1.25rem;
+  text-align: center;
   opacity: 0.65;
   letter-spacing: 0.06em;
   margin-top: 0.1rem;
@@ -254,7 +255,7 @@ button:active { transform: scale(0.97); }
 }
 
 .auth-tagline {
-  font-family: "Great Vibes", cursive;
+  font-family: "Alex Brush", cursive;
   font-size: 1.5rem;
   opacity: 0.65;
   letter-spacing: 0.06em;

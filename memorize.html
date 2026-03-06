@@ -181,6 +181,16 @@
 
     .btn-reset { padding: 0.5rem 1.1rem; font-size: 0.9rem; }
 
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 0.5rem 1.1rem;
+      font-size: 0.9rem;
+      border-radius: 6px;
+    }
+    .btn-secondary:hover { background: var(--primary); color: #fff; }
+
     .card-item.nailed-item { border-color: #d4a017; box-shadow: 0 0 0 1px #d4a017, 0 1px 4px rgba(212,160,23,0.2); }
 
     .confirm-overlay {
@@ -554,6 +564,7 @@
               <button class="filter-btn" data-filter="memorized">Memorized</button>
             </div>
           </div>
+          <button class="btn-secondary" id="restoreDefaultsBtn">Restore Defaults</button>
           <button class="btn-danger btn-reset" id="resetBtn">Reset</button>
           <button class="btn-primary" id="toggleAddBtn">+ Add Card</button>
         </div>
@@ -1246,6 +1257,18 @@
     quizRandomized = !quizRandomized;
     document.getElementById('qzShuffle').classList.toggle('active', quizRandomized);
     initQuiz();
+  });
+
+  // ── Restore Defaults ───────────────────────────────────────────
+  document.getElementById('restoreDefaultsBtn').addEventListener('click', async () => {
+    try {
+      const result = await api('POST', '/cards/seed');
+      if (result.added === 0) {
+        alert('All default cards are already present.');
+      } else {
+        await loadCards();
+      }
+    } catch (err) { alert(err.message); }
   });
 
   // ── Reset ──────────────────────────────────────────────────────
