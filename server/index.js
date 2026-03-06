@@ -8,7 +8,7 @@ const { Resend } = require('resend');
 const DEFAULT_CARDS = require('./seeds');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'quizzery-jwt-secret-change-in-production';
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ── Database setup ─────────────────────────────────────────────
@@ -344,5 +344,5 @@ app.delete('/readings/:id', requireAuth, (req, res) => {
 
 // ── Start ──────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`Don't Forget! Bible running at http://localhost:${PORT}`);
+  console.log(`Don't Forget! Bible running on port ${PORT}`);
 });
