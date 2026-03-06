@@ -1092,11 +1092,15 @@
     const card = quizCards[quizIndex];
     if (!card) return;
     const correct = quizMode === 'reference' ? card.back : card.front;
+    const userAnswer = document.getElementById('qzAnswer').value;
     document.getElementById('qzCorrect').textContent = correct;
     document.getElementById('qzResult').classList.add('visible');
     document.getElementById('qzAnswer').disabled = true;
     document.getElementById('qzCheck').style.display = 'none';
     updateMemoBtn();
+    if (quizMode === 'reference' && userAnswer.trim() === card.back.trim()) {
+      launchConfetti();
+    }
   });
 
   document.getElementById('qzMarkMemo').addEventListener('click', async () => {
@@ -1166,6 +1170,50 @@
     document.getElementById('qzShuffle').classList.toggle('active', quizRandomized);
     initQuiz();
   });
+
+  // ── Confetti ────────────────────────────────────────────────────
+  function launchConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    const COLORS = ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22','#1abc9c','#e91e63'];
+    const particles = Array.from({ length: 160 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height * 0.5,
+      w: 8 + Math.random() * 8,
+      h: 4 + Math.random() * 4,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 3 + Math.random() * 5,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.2,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    }));
+
+    const end = performance.now() + 2000;
+
+    function frame(now) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.rotSpeed;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      if (now < end) requestAnimationFrame(frame);
+      else canvas.remove();
+    }
+
+    requestAnimationFrame(frame);
+  }
 
   // ── Init ───────────────────────────────────────────────────────
   loadCards();

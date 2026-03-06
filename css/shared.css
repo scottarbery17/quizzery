@@ -94,7 +94,7 @@ button:active { transform: scale(0.97); }
 
 .sidebar-subtitle {
   font-family: "Great Vibes", cursive;
-  font-size: 0.75rem;
+  font-size: 1.25rem;
   opacity: 0.65;
   letter-spacing: 0.06em;
   margin-top: 0.1rem;
@@ -255,7 +255,7 @@ button:active { transform: scale(0.97); }
 
 .auth-tagline {
   font-family: "Great Vibes", cursive;
-  font-size: 0.75rem;
+  font-size: 1.5rem;
   opacity: 0.65;
   letter-spacing: 0.06em;
   margin-top: 0.1rem;
