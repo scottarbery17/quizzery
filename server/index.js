@@ -296,6 +296,13 @@ app.delete('/cards/:id', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/cards/reset', requireAuth, (req, res) => {
+  db.prepare(
+    'UPDATE cards SET seen = 0, memorized = 0, seen_at = NULL, memorized_at = NULL, nailed = 0, nailed_at = NULL WHERE user_id = ?'
+  ).run(req.user.id);
+  res.json({ ok: true });
+});
+
 // ── Readings routes ────────────────────────────────────────────
 app.get('/readings', requireAuth, (req, res) => {
   const readings = db.prepare(
