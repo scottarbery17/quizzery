@@ -599,49 +599,76 @@
 
     .filter-all-btn:hover { background: var(--border); color: var(--text); }
 
-    /* ── Find ─────────────────────────────────────────────────── */
-    .find-wrap { position: relative; }
+    /* ── Reference panel ──────────────────────────────────────── */
+    .tab-with-panel {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
 
-    .find-input {
-      font-family: inherit;
-      font-size: 0.85rem;
+    .ref-panel {
+      width: 195px;
+      flex-shrink: 0;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 0.3rem 0.9rem;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 1rem;
+      max-height: 520px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .ref-panel-header {
+      padding: 0.55rem 0.75rem 0.4rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      font-weight: bold;
+    }
+
+    .ref-search {
+      font-family: inherit;
+      font-size: 0.82rem;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 0.75rem;
       background: var(--bg);
       color: var(--text);
       outline: none;
-      width: 160px;
-      transition: border-color 0.15s;
+      width: 100%;
+      flex-shrink: 0;
     }
 
-    .find-input:focus { border-color: var(--primary); }
+    .ref-list { overflow-y: auto; flex: 1; }
 
-    .find-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-      z-index: 300;
-      max-height: 220px;
-      overflow-y: auto;
-      min-width: 200px;
-    }
-
-    .find-dropdown.hidden { display: none; }
-
-    .find-option {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.9rem;
+    .ref-item {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.82rem;
       cursor: pointer;
       border-bottom: 1px solid var(--border);
+      line-height: 1.3;
+      word-break: break-word;
     }
 
-    .find-option:last-child { border-bottom: none; }
-    .find-option:hover { background: var(--status-new-bg); }
+    .ref-item:last-child { border-bottom: none; }
+    .ref-item:hover { background: var(--status-new-bg); color: var(--text); }
+    .ref-item.active { background: var(--primary); color: #fff; }
+    .ref-item.crossed { text-decoration: line-through; color: var(--muted); }
+    .ref-item.crossed.active { text-decoration: line-through; color: rgba(255,255,255,0.7); }
+
+    .tab-with-panel .fc-view,
+    .tab-with-panel .quiz-view { flex: 1; min-width: 0; margin: 0; }
+
+    @media (max-width: 768px) {
+      .tab-with-panel { flex-direction: column; }
+      .ref-panel { width: 100%; position: static; max-height: 180px; }
+    }
 
     @keyframes nailed-bounce {
       0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
@@ -711,17 +738,19 @@
 
       <!-- Flashcards tab -->
       <div class="tab-panel" id="tab-flashcards">
-        <div class="fc-view">
+        <div class="tab-with-panel">
+          <div class="ref-panel" id="fcRefPanel">
+            <div class="ref-panel-header">Find References</div>
+            <input class="ref-search" id="fcRefSearch" placeholder="Search..." autocomplete="off" />
+            <div class="ref-list" id="fcRefList"></div>
+          </div>
+          <div class="fc-view">
           <div class="fc-controls">
             <div class="quiz-mode-bar">
               <button class="quiz-mode-btn active" id="fcModeRef">Reference first</button>
               <button class="quiz-mode-btn" id="fcModeVerse">Verse first</button>
             </div>
             <button class="btn-shuffle" id="fcShuffle">Randomize</button>
-            <div class="find-wrap">
-              <input type="text" class="find-input" id="fcFind" placeholder="Find reference..." autocomplete="off" />
-              <div class="find-dropdown hidden" id="fcFindDropdown"></div>
-            </div>
           </div>
           <div class="fc-counter" id="fcCounter"></div>
           <div class="fc-nav">
@@ -756,22 +785,25 @@
               <div class="quiz-progress-fill" id="fcProgressFill" style="width:0%"></div>
             </div>
           </div>
-        </div>
+          </div><!-- /fc-view -->
+        </div><!-- /tab-with-panel -->
       </div><!-- /tab-flashcards -->
 
       <!-- Quiz tab -->
       <div class="tab-panel" id="tab-quiz">
-        <div class="quiz-view">
+        <div class="tab-with-panel">
+          <div class="ref-panel" id="qzRefPanel">
+            <div class="ref-panel-header">Find References</div>
+            <input class="ref-search" id="qzRefSearch" placeholder="Search..." autocomplete="off" />
+            <div class="ref-list" id="qzRefList"></div>
+          </div>
+          <div class="quiz-view">
           <div class="quiz-mode-bar">
             <button class="quiz-mode-btn active" id="qzModeRef">Reference first</button>
             <button class="quiz-mode-btn" id="qzModeVerse">Verse first</button>
           </div>
           <div class="quiz-controls">
             <button class="btn-shuffle" id="qzShuffle">Randomize</button>
-            <div class="find-wrap">
-              <input type="text" class="find-input" id="qzFind" placeholder="Find reference..." autocomplete="off" />
-              <div class="find-dropdown hidden" id="qzFindDropdown"></div>
-            </div>
           </div>
           <div class="quiz-counter" id="qzCounter"></div>
           <div class="quiz-card">
@@ -828,7 +860,8 @@
               </div>
             </div>
           </div>
-        </div>
+          </div><!-- /quiz-view -->
+        </div><!-- /tab-with-panel -->
       </div><!-- /tab-quiz -->
     </main>
   </div>
@@ -1192,64 +1225,58 @@
     applyFilter();
   });
 
-  // ── Find – Flashcards ──────────────────────────────────────────
-  document.getElementById('fcFind').addEventListener('input', () => {
-    const q = document.getElementById('fcFind').value.toLowerCase();
-    const dd = document.getElementById('fcFindDropdown');
-    if (!q) { dd.classList.add('hidden'); return; }
-    const matches = fcCards.map((card, i) => ({ card, i }))
-      .filter(({ card }) => card.front.toLowerCase().includes(q));
-    if (!matches.length) { dd.classList.add('hidden'); return; }
-    dd.innerHTML = matches.slice(0, 12).map(({ card, i }) =>
-      `<div class="find-option" data-idx="${i}">${escHtml(card.front)}</div>`
-    ).join('');
-    dd.classList.remove('hidden');
-  });
+  // ── Reference panels ───────────────────────────────────────────
+  function renderFcRefPanel() {
+    const q = (document.getElementById('fcRefSearch').value || '').toLowerCase();
+    const list = document.getElementById('fcRefList');
+    if (!list) return;
+    list.innerHTML = fcCards.map((card, idx) => {
+      if (q && !card.front.toLowerCase().includes(q)) return '';
+      const crossed = card.seen || card.memorized;
+      const active = idx === fcIndex;
+      return `<div class="ref-item${crossed ? ' crossed' : ''}${active ? ' active' : ''}" data-idx="${idx}">${escHtml(card.front)}</div>`;
+    }).join('');
+    const activeEl = list.querySelector('.ref-item.active');
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+  }
 
-  document.getElementById('fcFindDropdown').addEventListener('click', e => {
-    const opt = e.target.closest('.find-option');
-    if (!opt) return;
-    fcIndex = Number(opt.dataset.idx);
+  function renderQzRefPanel() {
+    const q = (document.getElementById('qzRefSearch').value || '').toLowerCase();
+    const list = document.getElementById('qzRefList');
+    if (!list) return;
+    list.innerHTML = quizCards.map((card, idx) => {
+      if (q && !card.front.toLowerCase().includes(q)) return '';
+      const crossed = card.memorized;
+      const active = idx === quizIndex;
+      return `<div class="ref-item${crossed ? ' crossed' : ''}${active ? ' active' : ''}" data-idx="${idx}">${escHtml(card.front)}</div>`;
+    }).join('');
+    const activeEl = list.querySelector('.ref-item.active');
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+  }
+
+  document.getElementById('fcRefSearch').addEventListener('input', renderFcRefPanel);
+  document.getElementById('qzRefSearch').addEventListener('input', renderQzRefPanel);
+
+  document.getElementById('fcRefList').addEventListener('click', e => {
+    const item = e.target.closest('.ref-item');
+    if (!item) return;
+    fcIndex = Number(item.dataset.idx);
     renderFlashcard();
-    document.getElementById('fcFind').value = '';
-    document.getElementById('fcFindDropdown').classList.add('hidden');
     saveState();
   });
 
-  // ── Find – Quiz ────────────────────────────────────────────────
-  document.getElementById('qzFind').addEventListener('input', () => {
-    const q = document.getElementById('qzFind').value.toLowerCase();
-    const dd = document.getElementById('qzFindDropdown');
-    if (!q) { dd.classList.add('hidden'); return; }
-    const matches = quizCards.map((card, i) => ({ card, i }))
-      .filter(({ card }) => card.front.toLowerCase().includes(q));
-    if (!matches.length) { dd.classList.add('hidden'); return; }
-    dd.innerHTML = matches.slice(0, 12).map(({ card, i }) =>
-      `<div class="find-option" data-idx="${i}">${escHtml(card.front)}</div>`
-    ).join('');
-    dd.classList.remove('hidden');
-  });
-
-  document.getElementById('qzFindDropdown').addEventListener('click', e => {
-    const opt = e.target.closest('.find-option');
-    if (!opt) return;
-    quizIndex = Number(opt.dataset.idx);
+  document.getElementById('qzRefList').addEventListener('click', e => {
+    const item = e.target.closest('.ref-item');
+    if (!item) return;
+    quizIndex = Number(item.dataset.idx);
     renderQuiz();
-    document.getElementById('qzFind').value = '';
-    document.getElementById('qzFindDropdown').classList.add('hidden');
     saveState();
   });
 
-  // ── Close dropdowns on outside click ──────────────────────────
+  // ── Close filter dropdown on outside click ─────────────────────
   document.addEventListener('click', e => {
     if (!document.getElementById('filterWrap').contains(e.target)) {
       document.getElementById('filterMenu').classList.add('hidden');
-    }
-    if (!document.getElementById('fcFind').closest('.find-wrap').contains(e.target)) {
-      document.getElementById('fcFindDropdown').classList.add('hidden');
-    }
-    if (!document.getElementById('qzFind').closest('.find-wrap').contains(e.target)) {
-      document.getElementById('qzFindDropdown').classList.add('hidden');
     }
   });
 
@@ -1261,7 +1288,7 @@
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'flashcards') { buildFcCards(); renderFlashcard(); }
-      else if (btn.dataset.tab === 'quiz') { buildQuizCards(); renderQuiz(false); }
+      else if (btn.dataset.tab === 'quiz') { buildQuizCards(); renderQuiz(); }
       saveState();
     });
   });
@@ -1291,6 +1318,7 @@
       document.getElementById('fcBack').textContent = '';
       document.getElementById('fcPrev').disabled = true;
       document.getElementById('fcNext').disabled = true;
+      renderFcRefPanel();
       return;
     }
 
@@ -1328,6 +1356,7 @@
     } else {
       nailedBadge.style.display = 'none';
     }
+    renderFcRefPanel();
   }
 
   function updateFcProgress() {
@@ -1489,6 +1518,7 @@
       document.getElementById('qzPrompt').textContent = cards.length === 0 ? 'Add some cards first.' : 'No cards match the current filter.';
       document.getElementById('qzPrev').disabled = true;
       document.getElementById('qzNext').disabled = true;
+      renderQzRefPanel();
       return;
     }
 
@@ -1504,6 +1534,7 @@
     document.getElementById('qzNext').disabled = quizIndex === quizCards.length - 1;
     document.getElementById('qzAnswer').focus();
     updateQuizProgress();
+    renderQzRefPanel();
   }
 
   document.getElementById('qzCheck').addEventListener('click', async () => {
@@ -1549,6 +1580,7 @@
       updateMemoBtn();
       updateQuizProgress();
       updateSummary();
+      renderQzRefPanel();
       try { await api('PUT', `/cards/${card.id}`, { memorized: newVal }); }
       catch { await loadCards(); }
     } else {
