@@ -424,6 +424,8 @@
 
     .quiz-result.visible { display: flex; }
 
+    .quiz-result-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
     .quiz-result-label {
       font-size: 0.72rem;
       text-transform: uppercase;
@@ -791,7 +793,10 @@
             <div class="quiz-result" id="qzResult">
               <div class="quiz-result-label">Correct answer:</div>
               <div class="quiz-correct-text" id="qzCorrect"></div>
-              <button class="btn-memorize" id="qzMarkMemo">Mark as memorized</button>
+              <div class="quiz-result-btns">
+                <button class="btn-memorize" id="qzMarkMemo">Mark as memorized</button>
+                <button class="btn-cancel" id="qzTryAgain">Try again</button>
+              </div>
             </div>
           </div>
           <div class="quiz-progress-wrap">
@@ -1011,7 +1016,7 @@
         <div class="card-status">
           <span class="status-badge clickable ${card.seen ? 'seen' : 'unseen'}" data-action="toggle-seen" data-id="${card.id}">${card.seen ? 'Seen' + (card.seen_at ? ' ' + fmtDate(card.seen_at) : '') : 'Unseen'}</span>
           <span class="status-badge clickable ${card.memorized ? 'memorized' : 'unmemorized'}" data-action="toggle-memorized" data-id="${card.id}">${card.memorized ? 'Memorized' + (card.memorized_at ? ' ' + fmtDate(card.memorized_at) : '') : 'Unmemorized'}</span>
-          ${card.nailed ? `<span class="status-badge nailed">&#128296; Nailed it!</span>` : ''}
+          ${card.nailed ? `<span class="status-badge nailed clickable" data-action="toggle-nailed" data-id="${card.id}" title="Click to remove">&#128296; Nailed it!${card.nailed_at ? ' ' + fmtDate(card.nailed_at) : ''}</span>` : ''}
         </div>
         <div class="card-actions">
           <button class="btn-edit" data-action="edit" data-id="${card.id}">Edit</button>
@@ -1128,6 +1133,15 @@
       render();
       updateQuizProgress();
       api('PUT', `/cards/${id}`, { memorized: newVal }).catch(() => loadCards());
+
+    } else if (action === 'toggle-nailed') {
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      card.nailed = 0;
+      card.nailed_at = null;
+      render();
+      updateQuizProgress();
+      api('PUT', `/cards/${id}`, { nailed: 0 }).catch(() => loadCards());
     }
   });
 
@@ -1547,6 +1561,15 @@
       updateMemoBtn();
       updateQuizProgress();
     }
+  });
+
+  document.getElementById('qzTryAgain').addEventListener('click', () => {
+    document.getElementById('qzResult').classList.remove('visible');
+    const ta = document.getElementById('qzAnswer');
+    ta.value = '';
+    ta.disabled = false;
+    ta.focus();
+    document.getElementById('qzCheck').style.display = '';
   });
 
   document.getElementById('qzAnswer').addEventListener('keydown', e => {
