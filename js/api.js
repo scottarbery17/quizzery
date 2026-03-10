@@ -52,6 +52,7 @@
     const navPages = [
       { page: 'memorize', label: 'Memorize', href: '/memorize' },
       { page: 'read',     label: 'Read',     href: '/read'     },
+      { page: 'tribe',    label: 'Tribe',    href: '/tribe'    },
     ];
 
     const navLinks = navPages.map(p =>

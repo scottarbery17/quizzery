@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tribe — Don't Forget!</title>
+  <link rel="stylesheet" href="/css/shared.css" />
+  <style>
+    /* ── Tabs ───────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:active { transform: none; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Tribe page ─────────────────────────────────────────────── */
+    .tribe-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.75rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .tribe-section h2 {
+      font-size: 1rem;
+      font-weight: normal;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .tribe-name-display {
+      font-size: 1.5rem;
+      font-weight: normal;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .tribe-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Member list ────────────────────────────────────────────── */
+    .member-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .member-name {
+      font-size: 0.95rem;
+    }
+
+    .member-badge {
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: var(--border);
+      border-radius: 12px;
+      padding: 0.15rem 0.6rem;
+      letter-spacing: 0.04em;
+    }
+
+    .member-badge.leader {
+      background: var(--status-done-bg);
+      color: var(--status-done);
+    }
+
+    /* ── Invite form ────────────────────────────────────────────── */
+    .invite-form-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .invite-form-row .form-group {
+      flex: 1;
+    }
+
+    .invite-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      margin-top: 0.5rem;
+    }
+
+    .invite-success {
+      color: var(--status-done);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Invite cards ───────────────────────────────────────────── */
+    .invite-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .invite-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      gap: 0.75rem;
+    }
+
+    .invite-text {
+      font-size: 0.9rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .invite-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .invite-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Danger zone ────────────────────────────────────────────── */
+    .danger-zone {
+      border-color: var(--danger);
+    }
+
+    .danger-zone h2 {
+      color: var(--danger);
+    }
+
+    .danger-zone p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .leave-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Leaderboard chart ──────────────────────────────────────── */
+    .chart-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chart-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .chart-label {
+      width: 120px;
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      text-align: right;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chart-bar-wrap {
+      flex: 1;
+      background: var(--border);
+      border-radius: 4px;
+      height: 28px;
+      overflow: hidden;
+    }
+
+    .chart-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+      min-width: 2px;
+    }
+
+    .chart-value {
+      width: 2.5rem;
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* ── Hidden ─────────────────────────────────────────────────── */
+    .hidden { display: none; }
+
+    @media (max-width: 600px) {
+      .invite-form-row { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="page-content">
+    <main class="page-main">
+
+      <!-- ── TAB BAR (shown only when in a tribe) ──────────────── -->
+      <div class="tab-bar hidden" id="tribeTabs">
+        <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+        <button class="tab-btn" data-tab="settings">Settings</button>
+      </div>
+
+      <!-- ── NO TRIBE VIEW ─────────────────────────────────────── -->
+      <div id="noTribeView">
+        <div class="tribe-section">
+          <h2>Create a Tribe</h2>
+          <div class="invite-form-row">
+            <div class="form-group">
+              <label for="tribeNameInput">Tribe Name</label>
+              <input type="text" id="tribeNameInput" placeholder="e.g. The Bereans" maxlength="60" />
+            </div>
+            <button class="btn-primary" id="createTribeBtn">Create</button>
+          </div>
+          <div class="invite-error" id="createError"></div>
+        </div>
+
+        <div class="tribe-section hidden" id="pendingInvitesNoTribe">
+          <h2>Tribe Invitations</h2>
+          <div class="invite-list" id="inviteListNoTribe"></div>
+        </div>
+      </div>
+
+      <!-- ── LEADERBOARD TAB PANEL ─────────────────────────────── -->
+      <div class="tab-panel" id="tab-leaderboard">
+        <div class="tribe-section">
+          <h2>Memorized Verses</h2>
+          <div class="chart-bars" id="leaderboardChart"></div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS TAB PANEL ────────────────────────────────── -->
+      <div class="tab-panel active" id="tab-settings">
+        <div id="inTribeView" class="hidden">
+          <div class="tribe-section">
+            <h2>My Tribe</h2>
+            <div class="tribe-name-display" id="tribeNameDisplay"></div>
+            <div class="tribe-meta" id="tribeMeta"></div>
+            <div class="member-list" id="memberList"></div>
+          </div>
+
+          <div class="tribe-section">
+            <h2>Invite a Member</h2>
+            <div class="invite-form-row">
+              <div class="form-group">
+                <label for="inviteUsernameInput">Username</label>
+                <input type="text" id="inviteUsernameInput" placeholder="Enter their username" />
+              </div>
+              <button class="btn-primary" id="sendInviteBtn">Invite</button>
+            </div>
+            <div class="invite-error" id="inviteError"></div>
+            <div class="invite-success" id="inviteSuccess"></div>
+          </div>
+
+          <div class="tribe-section hidden" id="invitesSentSection">
+            <h2>Invites Sent</h2>
+            <div class="invite-list" id="invitesSentList"></div>
+          </div>
+
+          <div class="tribe-section hidden" id="invitesReceivedSection">
+            <h2>Invitations Received</h2>
+            <div class="invite-list" id="invitesReceivedList"></div>
+          </div>
+
+          <div class="tribe-section danger-zone">
+            <h2>Leave Tribe</h2>
+            <p id="leaveDesc">Once you leave, you will no longer see your tribe's members or activity.</p>
+            <button class="btn-danger" id="leaveTribeBtn">Leave Tribe</button>
+            <div class="leave-error" id="leaveError"></div>
+          </div>
+        </div>
+      </div>
+      </div> 
+
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  initSidebar('tribe');
+
+  let tribeData = null;
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function getUserIdFromToken() {
+    try {
+      const token = getToken();
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id;
+    } catch { return null; }
+  }
+
+  function formatRelative(isoStr) {
+    if (!isoStr) return '';
+    const date = new Date(isoStr);
+    const diff = Date.now() - date.getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  // ── Tabs ─────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'leaderboard') loadLeaderboard();
+    });
+  });
+
+  // ── Render ───────────────────────────────────────────────────
+  function render() {
+    const noTribeView = document.getElementById('noTribeView');
+    const inTribeView = document.getElementById('inTribeView');
+    const tribeTabs   = document.getElementById('tribeTabs');
+
+    if (!tribeData || !tribeData.tribe) {
+      noTribeView.classList.remove('hidden');
+      inTribeView.classList.add('hidden');
+      tribeTabs.classList.remove('hidden');
+      // Show only Settings tab when not in a tribe
+      document.querySelector('[data-tab="leaderboard"]').classList.add('hidden');
+      document.querySelector('[data-tab="settings"]').classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-tab="settings"]').classList.add('active');
+      document.getElementById('tab-settings').classList.add('active');
+      renderNoTribe();
+    } else {
+      noTribeView.classList.add('hidden');
+      inTribeView.classList.remove('hidden');
+      tribeTabs.classList.remove('hidden');
+      // Show both tabs and default to Leaderboard
+      document.querySelector('[data-tab="leaderboard"]').classList.remove('hidden');
+      document.querySelector('[data-tab="settings"]').classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-tab="leaderboard"]').classList.add('active');
+      document.getElementById('tab-leaderboard').classList.add('active');
+      renderInTribe();
+      loadLeaderboard();
+    }
+  }
+
+  function renderNoTribe() {
+    const invites = (tribeData && tribeData.invitesReceived) || [];
+    const section = document.getElementById('pendingInvitesNoTribe');
+    const list = document.getElementById('inviteListNoTribe');
+
+    if (invites.length === 0) {
+      section.classList.add('hidden');
+      list.innerHTML = '';
+      return;
+    }
+
+    section.classList.remove('hidden');
+    list.innerHTML = invites.map(inv => `
+      <div class="invite-item">
+        <div class="invite-text">
+          <strong>${escHtml(inv.inviter_username)}</strong> invited you to join
+          <strong>${escHtml(inv.tribe_name)}</strong>
+          <div class="invite-meta">${escHtml(formatRelative(inv.created_at))}</div>
+        </div>
+        <div class="invite-actions">
+          <button class="btn-primary" data-action="accept" data-id="${inv.id}" style="padding:0.3rem 0.8rem;font-size:0.8rem;">Accept</button>
+          <button class="btn-cancel" data-action="decline" data-id="${inv.id}" style="padding:0.3rem 0.8rem;font-size:0.8rem;">Decline</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderInTribe() {
+    const { tribe, members, invitesSent, invitesReceived } = tribeData;
+    const currentUserId = getUserIdFromToken();
+    const isLeader = tribe.leader_user_id === currentUserId;
+
+    document.getElementById('tribeNameDisplay').textContent = tribe.name;
+    document.getElementById('tribeMeta').textContent =
+      `${members.length} of 12 member${members.length !== 1 ? 's' : ''}`;
+
+    document.getElementById('memberList').innerHTML = members.map(m => {
+      const isThisLeader = m.id === tribe.leader_user_id;
+      return `
+        <div class="member-item">
+          <span class="member-name">${escHtml(m.username)}</span>
+          <span class="member-badge${isThisLeader ? ' leader' : ''}">${isThisLeader ? 'Leader' : 'Member'}</span>
+        </div>
+      `;
+    }).join('');
+
+    const sentSection = document.getElementById('invitesSentSection');
+    const sentList = document.getElementById('invitesSentList');
+    if (invitesSent.length === 0) {
+      sentSection.classList.add('hidden');
+    } else {
+      sentSection.classList.remove('hidden');
+      sentList.innerHTML = invitesSent.map(inv => `
+        <div class="invite-item">
+          <div class="invite-text">
+            Invited <strong>${escHtml(inv.invitee_username)}</strong>
+            <div class="invite-meta">${escHtml(formatRelative(inv.created_at))}</div>
+          </div>
+          <span class="member-badge">Pending</span>
+        </div>
+      `).join('');
+    }
+
+    const recSection = document.getElementById('invitesReceivedSection');
+    const recList = document.getElementById('invitesReceivedList');
+    if (invitesReceived.length === 0) {
+      recSection.classList.add('hidden');
+    } else {
+      recSection.classList.remove('hidden');
+      recList.innerHTML = invitesReceived.map(inv => `
+        <div class="invite-item">
+          <div class="invite-text">
+            <strong>${escHtml(inv.inviter_username)}</strong> invited you to join
+            <strong>${escHtml(inv.tribe_name)}</strong>
+            <div class="invite-meta">${escHtml(formatRelative(inv.created_at))}</div>
+          </div>
+          <div class="invite-actions">
+            <button class="btn-cancel" data-action="decline" data-id="${inv.id}" style="padding:0.3rem 0.8rem;font-size:0.8rem;">Decline</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const leaveDesc = document.getElementById('leaveDesc');
+    if (isLeader && members.length > 1) {
+      leaveDesc.textContent = 'You are the tribe leader. To leave, you must be the last remaining member.';
+    } else if (members.length === 1) {
+      leaveDesc.textContent = 'You are the only member. Leaving will disband the tribe.';
+    } else {
+      leaveDesc.textContent = "Once you leave, you will no longer see your tribe's members or activity.";
+    }
+  }
+
+  // ── Leaderboard ──────────────────────────────────────────────
+  async function loadLeaderboard() {
+    const chart = document.getElementById('leaderboardChart');
+    chart.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">Loading...</div>';
+    try {
+      const rows = await api('GET', '/tribes/leaderboard');
+      if (!rows || rows.length === 0) {
+        chart.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No data yet.</div>';
+        return;
+      }
+      const max = Math.max(...rows.map(r => r.memorized_count), 1);
+      chart.innerHTML = rows.map(r => {
+        const pct = r.memorized_count === 0 ? 0 : Math.max(Math.round((r.memorized_count / max) * 100), 1);
+        return `
+          <div class="chart-row">
+            <div class="chart-label" title="${escHtml(r.username)}">${escHtml(r.username)}</div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <div class="chart-value">${r.memorized_count}</div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      chart.innerHTML = `<div style="color:var(--danger);font-size:0.9rem;">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  // ── Create tribe ────────────────────────────────────────────
+  document.getElementById('createTribeBtn').addEventListener('click', async () => {
+    const name = document.getElementById('tribeNameInput').value.trim();
+    const errorEl = document.getElementById('createError');
+    errorEl.textContent = '';
+    if (!name) { errorEl.textContent = 'Tribe name is required.'; return; }
+    try {
+      await api('POST', '/tribes', { name });
+      await loadTribe();
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
+
+  document.getElementById('tribeNameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('createTribeBtn').click();
+  });
+
+  // ── Send invite ─────────────────────────────────────────────
+  document.getElementById('sendInviteBtn').addEventListener('click', async () => {
+    const username = document.getElementById('inviteUsernameInput').value.trim();
+    const errorEl = document.getElementById('inviteError');
+    const successEl = document.getElementById('inviteSuccess');
+    errorEl.textContent = '';
+    successEl.textContent = '';
+    if (!username) { errorEl.textContent = 'Username is required.'; return; }
+    try {
+      await api('POST', '/tribes/invite', { username });
+      document.getElementById('inviteUsernameInput').value = '';
+      successEl.textContent = `Invite sent to ${escHtml(username)}.`;
+      await loadTribe();
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
+
+  document.getElementById('inviteUsernameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('sendInviteBtn').click();
+  });
+
+  // ── Respond to invites (event delegation) ───────────────────
+  async function handleRespond(action, id) {
+    try {
+      await api('POST', `/tribes/invite/${id}/respond`, { action });
+      await loadTribe();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  document.getElementById('inviteListNoTribe').addEventListener('click', async e => {
+    const { action, id } = e.target.dataset;
+    if (action === 'accept' || action === 'decline') await handleRespond(action, id);
+  });
+
+  document.getElementById('invitesReceivedList').addEventListener('click', async e => {
+    const { action, id } = e.target.dataset;
+    if (action === 'decline') await handleRespond(action, id);
+  });
+
+  // ── Leave tribe ─────────────────────────────────────────────
+  document.getElementById('leaveTribeBtn').addEventListener('click', async () => {
+    const leaveEl = document.getElementById('leaveError');
+    leaveEl.textContent = '';
+    if (!confirm('Are you sure you want to leave this tribe?')) return;
+    try {
+      await api('DELETE', '/tribes/leave');
+      await loadTribe();
+    } catch (err) {
+      leaveEl.textContent = err.message;
+    }
+  });
+
+  // ── Load ────────────────────────────────────────────────────
+  async function loadTribe() {
+    tribeData = await api('GET', '/tribes/my');
+    render();
+  }
+
+  loadTribe();
+</script>
+</body>
+</html>

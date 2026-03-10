@@ -59,6 +59,36 @@ db.exec(`
     used INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS tribes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    leader_user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (leader_user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS tribe_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tribe_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tribe_id) REFERENCES tribes(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (user_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS tribe_invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tribe_id INTEGER NOT NULL,
+    inviter_user_id INTEGER NOT NULL,
+    invitee_user_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tribe_id) REFERENCES tribes(id) ON DELETE CASCADE,
+    FOREIGN KEY (inviter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (invitee_user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
 
 // ── Migrate existing databases ─────────────────────────────────
@@ -90,6 +120,10 @@ app.get('/reset-password', (req, res) => {
 
 app.get('/profile', (_, res) => {
   res.sendFile(path.join(__dirname, '..', 'profile.html'));
+});
+
+app.get('/tribe', (_, res) => {
+  res.sendFile(path.join(__dirname, '..', 'tribe.html'));
 });
 
 // ── Auth middleware ────────────────────────────────────────────
@@ -347,6 +381,217 @@ app.delete('/readings/:id', requireAuth, (req, res) => {
   ).run(req.params.id, req.user.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Reading not found.' });
   res.json({ success: true });
+});
+
+// ── Tribe routes ───────────────────────────────────────────────
+
+app.post('/tribes', requireAuth, (req, res) => {
+  const { name } = req.body ?? {};
+  if (!name?.trim()) {
+    return res.status(400).json({ error: 'Tribe name is required.' });
+  }
+
+  const existing = db.prepare('SELECT id FROM tribe_members WHERE user_id = ?').get(req.user.id);
+  if (existing) {
+    return res.status(409).json({ error: 'You are already in a tribe.' });
+  }
+
+  const createTribe = db.transaction(() => {
+    const { lastInsertRowid: tribeId } = db.prepare(
+      'INSERT INTO tribes (name, leader_user_id) VALUES (?, ?)'
+    ).run(name.trim(), req.user.id);
+    db.prepare('INSERT INTO tribe_members (tribe_id, user_id) VALUES (?, ?)').run(tribeId, req.user.id);
+    return tribeId;
+  });
+
+  const tribeId = createTribe();
+  res.json({ id: tribeId, name: name.trim(), leader_user_id: req.user.id });
+});
+
+app.get('/tribes/my', requireAuth, (req, res) => {
+  const membership = db.prepare('SELECT tribe_id FROM tribe_members WHERE user_id = ?').get(req.user.id);
+
+  if (!membership) {
+    const invitesReceived = db.prepare(`
+      SELECT ti.id, ti.tribe_id, t.name AS tribe_name, u.username AS inviter_username, ti.created_at
+      FROM tribe_invitations ti
+      JOIN tribes t ON t.id = ti.tribe_id
+      JOIN users u ON u.id = ti.inviter_user_id
+      WHERE ti.invitee_user_id = ? AND ti.status = 'pending'
+      ORDER BY ti.created_at DESC
+    `).all(req.user.id);
+    return res.json({ tribe: null, invitesReceived });
+  }
+
+  const tribe = db.prepare('SELECT id, name, leader_user_id FROM tribes WHERE id = ?').get(membership.tribe_id);
+  if (!tribe) return res.status(404).json({ error: 'Tribe not found.' });
+
+  const members = db.prepare(`
+    SELECT u.id, u.username, tm.joined_at
+    FROM tribe_members tm
+    JOIN users u ON u.id = tm.user_id
+    WHERE tm.tribe_id = ?
+    ORDER BY tm.joined_at ASC
+  `).all(tribe.id);
+
+  const invitesSent = db.prepare(`
+    SELECT ti.id, ti.invitee_user_id, u.username AS invitee_username, ti.status, ti.created_at
+    FROM tribe_invitations ti
+    JOIN users u ON u.id = ti.invitee_user_id
+    WHERE ti.tribe_id = ? AND ti.status = 'pending'
+    ORDER BY ti.created_at DESC
+  `).all(tribe.id);
+
+  const invitesReceived = db.prepare(`
+    SELECT ti.id, ti.tribe_id, t.name AS tribe_name, u.username AS inviter_username, ti.created_at
+    FROM tribe_invitations ti
+    JOIN tribes t ON t.id = ti.tribe_id
+    JOIN users u ON u.id = ti.inviter_user_id
+    WHERE ti.invitee_user_id = ? AND ti.status = 'pending'
+    ORDER BY ti.created_at DESC
+  `).all(req.user.id);
+
+  res.json({ tribe, members, invitesSent, invitesReceived });
+});
+
+app.post('/tribes/invite', requireAuth, (req, res) => {
+  const { username } = req.body ?? {};
+  if (!username?.trim()) {
+    return res.status(400).json({ error: 'Username is required.' });
+  }
+
+  const membership = db.prepare('SELECT tribe_id FROM tribe_members WHERE user_id = ?').get(req.user.id);
+  if (!membership) {
+    return res.status(403).json({ error: 'You must be in a tribe to invite members.' });
+  }
+
+  const tribe = db.prepare('SELECT id, name, leader_user_id FROM tribes WHERE id = ?').get(membership.tribe_id);
+  if (!tribe) return res.status(404).json({ error: 'Tribe not found.' });
+
+  const memberCount = db.prepare('SELECT COUNT(*) AS cnt FROM tribe_members WHERE tribe_id = ?').get(tribe.id);
+  if (memberCount.cnt >= 12) {
+    return res.status(400).json({ error: 'Tribe is full (max 12 members).' });
+  }
+
+  const invitee = db.prepare('SELECT id, username FROM users WHERE username = ? COLLATE NOCASE').get(username.trim());
+  if (!invitee) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  if (invitee.id === req.user.id) {
+    return res.status(400).json({ error: 'You cannot invite yourself.' });
+  }
+
+  const inviteeMembership = db.prepare('SELECT id FROM tribe_members WHERE user_id = ?').get(invitee.id);
+  if (inviteeMembership) {
+    return res.status(409).json({ error: 'That user is already in a tribe.' });
+  }
+
+  const existingInvite = db.prepare(`
+    SELECT id FROM tribe_invitations
+    WHERE tribe_id = ? AND invitee_user_id = ? AND status = 'pending'
+  `).get(tribe.id, invitee.id);
+  if (existingInvite) {
+    return res.status(409).json({ error: 'An invite to this user is already pending.' });
+  }
+
+  const { lastInsertRowid: inviteId } = db.prepare(
+    'INSERT INTO tribe_invitations (tribe_id, inviter_user_id, invitee_user_id) VALUES (?, ?, ?)'
+  ).run(tribe.id, req.user.id, invitee.id);
+
+  res.json({ id: inviteId, tribe_id: tribe.id, invitee_username: invitee.username, status: 'pending' });
+});
+
+app.post('/tribes/invite/:id/respond', requireAuth, (req, res) => {
+  const { action } = req.body ?? {};
+  if (action !== 'accept' && action !== 'decline') {
+    return res.status(400).json({ error: 'Action must be "accept" or "decline".' });
+  }
+
+  const invite = db.prepare(`
+    SELECT * FROM tribe_invitations WHERE id = ? AND invitee_user_id = ? AND status = 'pending'
+  `).get(req.params.id, req.user.id);
+
+  if (!invite) {
+    return res.status(404).json({ error: 'Invite not found or already responded.' });
+  }
+
+  if (action === 'decline') {
+    db.prepare("UPDATE tribe_invitations SET status = 'declined' WHERE id = ?").run(invite.id);
+    return res.json({ ok: true, action: 'declined' });
+  }
+
+  const tribe = db.prepare('SELECT id FROM tribes WHERE id = ?').get(invite.tribe_id);
+  if (!tribe) {
+    db.prepare("UPDATE tribe_invitations SET status = 'declined' WHERE id = ?").run(invite.id);
+    return res.status(404).json({ error: 'Tribe no longer exists.' });
+  }
+
+  const existingMembership = db.prepare('SELECT id FROM tribe_members WHERE user_id = ?').get(req.user.id);
+  if (existingMembership) {
+    return res.status(409).json({ error: 'You are already in a tribe.' });
+  }
+
+  const memberCount = db.prepare('SELECT COUNT(*) AS cnt FROM tribe_members WHERE tribe_id = ?').get(tribe.id);
+  if (memberCount.cnt >= 12) {
+    return res.status(400).json({ error: 'Tribe is full (max 12 members).' });
+  }
+
+  const acceptAndJoin = db.transaction(() => {
+    db.prepare("UPDATE tribe_invitations SET status = 'accepted' WHERE id = ?").run(invite.id);
+    db.prepare('INSERT INTO tribe_members (tribe_id, user_id) VALUES (?, ?)').run(tribe.id, req.user.id);
+    db.prepare(`
+      UPDATE tribe_invitations SET status = 'declined'
+      WHERE invitee_user_id = ? AND id != ? AND status = 'pending'
+    `).run(req.user.id, invite.id);
+  });
+
+  acceptAndJoin();
+  res.json({ ok: true, action: 'accepted', tribe_id: tribe.id });
+});
+
+app.delete('/tribes/leave', requireAuth, (req, res) => {
+  const membership = db.prepare('SELECT tribe_id FROM tribe_members WHERE user_id = ?').get(req.user.id);
+  if (!membership) {
+    return res.status(404).json({ error: 'You are not in a tribe.' });
+  }
+
+  const tribe = db.prepare('SELECT id, name, leader_user_id FROM tribes WHERE id = ?').get(membership.tribe_id);
+  if (!tribe) return res.status(404).json({ error: 'Tribe not found.' });
+
+  const memberCount = db.prepare('SELECT COUNT(*) AS cnt FROM tribe_members WHERE tribe_id = ?').get(tribe.id);
+
+  if (tribe.leader_user_id === req.user.id && memberCount.cnt > 1) {
+    return res.status(400).json({ error: 'You are the tribe leader. Transfer leadership or disband the tribe before leaving.' });
+  }
+
+  const leaveOrDisband = db.transaction(() => {
+    db.prepare('DELETE FROM tribe_members WHERE user_id = ?').run(req.user.id);
+    if (memberCount.cnt === 1) {
+      db.prepare('DELETE FROM tribes WHERE id = ?').run(tribe.id);
+    }
+  });
+
+  leaveOrDisband();
+  res.json({ ok: true });
+});
+
+app.get('/tribes/leaderboard', requireAuth, (req, res) => {
+  const membership = db.prepare('SELECT tribe_id FROM tribe_members WHERE user_id = ?').get(req.user.id);
+  if (!membership) return res.status(403).json({ error: 'You are not in a tribe.' });
+
+  const rows = db.prepare(`
+    SELECT u.username,
+           COUNT(CASE WHEN c.memorized = 1 THEN 1 END) AS memorized_count
+    FROM tribe_members tm
+    JOIN users u ON u.id = tm.user_id
+    LEFT JOIN cards c ON c.user_id = tm.user_id
+    WHERE tm.tribe_id = ?
+    GROUP BY tm.user_id
+    ORDER BY memorized_count DESC
+  `).all(membership.tribe_id);
+
+  res.json(rows);
 });
 
 // ── Start ──────────────────────────────────────────────────────
