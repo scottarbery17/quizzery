@@ -108,11 +108,11 @@
       white-space: nowrap;
     }
 
-    .status-badge.unseen      { background: #e8e4da; color: #7a7060; }
+    .status-badge.unseen      { background: var(--status-new-bg); color: var(--muted); }
     .status-badge.seen        { background: var(--status-learning-bg); color: var(--status-learning); }
-    .status-badge.unmemorized { background: #e8e4da; color: #7a7060; }
+    .status-badge.unmemorized { background: var(--status-new-bg); color: var(--muted); }
     .status-badge.memorized   { background: var(--status-done-bg); color: var(--status-done); }
-    .status-badge.nailed      { background: #fff3cd; color: #b8860b; font-size: 0.72rem; }
+    .status-badge.nailed      { background: var(--nailed-bg); color: var(--nailed-text); font-size: 0.72rem; }
     .status-badge.clickable   { cursor: pointer; transition: opacity 0.15s; }
     .status-badge.clickable:hover { opacity: 0.7; }
 
@@ -181,7 +181,7 @@
     .empty-state p:first-child { font-size: 1.1rem; margin-bottom: 0.5rem; }
     .empty-state p:last-child { font-size: 0.85rem; }
 
-    .card-item.nailed-item { border-color: #d4a017; box-shadow: 0 0 0 1px #d4a017, 0 1px 4px rgba(212,160,23,0.2); }
+    .card-item.nailed-item { border-color: var(--nailed-border); box-shadow: 0 0 0 1px var(--nailed-border), 0 1px 4px rgba(212,160,23,0.2); }
 
     .confirm-overlay {
       position: fixed;
@@ -526,6 +526,130 @@
       .form-row { grid-template-columns: 1fr; }
       .inline-edit-fields { grid-template-columns: 1fr; }
     }
+
+    /* ── Shared controls ──────────────────────────────────────── */
+    .shared-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── Filter dropdown ──────────────────────────────────────── */
+    .filter-wrap { position: relative; }
+
+    .btn-filter {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 20px;
+    }
+
+    .btn-filter.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-filter:hover:not(.active) { background: var(--border); color: var(--text); }
+
+    .filter-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.4rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 300;
+      min-width: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .filter-menu.hidden { display: none; }
+
+    .filter-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      user-select: none;
+    }
+
+    .filter-option:hover { background: var(--border); }
+    .filter-option input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); width: 14px; height: 14px; }
+
+    .filter-all-btn {
+      margin-top: 0.3rem;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .filter-all-btn:hover { background: var(--border); color: var(--text); }
+
+    /* ── Find ─────────────────────────────────────────────────── */
+    .find-wrap { position: relative; }
+
+    .find-input {
+      font-family: inherit;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.3rem 0.9rem;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      width: 160px;
+      transition: border-color 0.15s;
+    }
+
+    .find-input:focus { border-color: var(--primary); }
+
+    .find-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 300;
+      max-height: 220px;
+      overflow-y: auto;
+      min-width: 200px;
+    }
+
+    .find-dropdown.hidden { display: none; }
+
+    .find-option {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .find-option:last-child { border-bottom: none; }
+    .find-option:hover { background: var(--status-new-bg); }
+
+    @keyframes nailed-bounce {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+      35%  { opacity: 1; transform: translate(-50%, -50%) scale(1.25); }
+      50%  { transform: translate(-50%, -50%) scale(0.88); }
+      65%  { transform: translate(-50%, -50%) scale(1.14); }
+      75%  { transform: translate(-50%, -50%) scale(0.95); }
+      85%  { transform: translate(-50%, -50%) scale(1.04); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -539,19 +663,25 @@
         <button class="tab-btn" data-tab="quiz">Quiz</button>
       </div>
 
+      <!-- Shared controls (filter + count, always visible) -->
+      <div class="shared-controls">
+        <div class="filter-wrap" id="filterWrap">
+          <button class="btn-filter" id="filterBtn">Filter ▾</button>
+          <div class="filter-menu hidden" id="filterMenu">
+            <label class="filter-option"><input type="checkbox" data-filter="unseen"> Unseen</label>
+            <label class="filter-option"><input type="checkbox" data-filter="seen"> Seen</label>
+            <label class="filter-option"><input type="checkbox" data-filter="unmemorized"> Unmemorized</label>
+            <label class="filter-option"><input type="checkbox" data-filter="memorized"> Memorized</label>
+            <button class="filter-all-btn" id="filterAllBtn">Show All</button>
+          </div>
+        </div>
+        <div class="count-summary" id="countSummary"></div>
+      </div>
+
       <!-- List tab -->
       <div class="tab-panel active" id="tab-list">
         <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="count-summary" id="countSummary"></div>
-            <div class="filter-bar">
-              <button class="filter-btn active" data-filter="all">All</button>
-              <button class="filter-btn" data-filter="unseen">Unseen</button>
-              <button class="filter-btn" data-filter="seen">Seen</button>
-              <button class="filter-btn" data-filter="unmemorized">Unmemorized</button>
-              <button class="filter-btn" data-filter="memorized">Memorized</button>
-            </div>
-          </div>
+          <div class="toolbar-left"></div>
           <button class="btn-danger" id="resetBtn" style="padding:0.5rem 1.1rem;font-size:0.9rem;">Reset All</button>
           <button class="btn-primary" id="toggleAddBtn">+ Add Card</button>
         </div>
@@ -586,6 +716,10 @@
               <button class="quiz-mode-btn" id="fcModeVerse">Verse first</button>
             </div>
             <button class="btn-shuffle" id="fcShuffle">Randomize</button>
+            <div class="find-wrap">
+              <input type="text" class="find-input" id="fcFind" placeholder="Find reference..." autocomplete="off" />
+              <div class="find-dropdown hidden" id="fcFindDropdown"></div>
+            </div>
           </div>
           <div class="fc-counter" id="fcCounter"></div>
           <div class="fc-nav">
@@ -631,14 +765,11 @@
             <button class="quiz-mode-btn" id="qzModeVerse">Verse first</button>
           </div>
           <div class="quiz-controls">
-            <div class="filter-bar">
-              <button class="filter-btn active" data-qzfilter="all">All</button>
-              <button class="filter-btn" data-qzfilter="unseen">Unseen</button>
-              <button class="filter-btn" data-qzfilter="seen">Seen</button>
-              <button class="filter-btn" data-qzfilter="unmemorized">Unmemorized</button>
-              <button class="filter-btn" data-qzfilter="memorized">Memorized</button>
-            </div>
             <button class="btn-shuffle" id="qzShuffle">Randomize</button>
+            <div class="find-wrap">
+              <input type="text" class="find-input" id="qzFind" placeholder="Find reference..." autocomplete="off" />
+              <div class="find-dropdown hidden" id="qzFindDropdown"></div>
+            </div>
           </div>
           <div class="quiz-counter" id="qzCounter"></div>
           <div class="quiz-card">
@@ -715,8 +846,91 @@
   initSidebar('memorize');
 
   let cards = [];
-  let activeFilter = 'all';
+  let activeFilters = new Set();
   let currentUser = getCurrentUser();
+
+  // ── State persistence ───────────────────────────────────────────
+  const MEMO_STATE_KEY = `dfb-memorize-state-${currentUser || 'guest'}`;
+
+  function getSavedState() {
+    try { return JSON.parse(localStorage.getItem(MEMO_STATE_KEY)) || {}; }
+    catch { return {}; }
+  }
+
+  function saveState() {
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'list';
+    localStorage.setItem(MEMO_STATE_KEY, JSON.stringify({
+      activeTab,
+      activeFilters: [...activeFilters],
+      fcIndex,
+      fcMode,
+      fcRandomized,
+      quizIndex,
+      quizMode,
+      quizRandomized,
+      quizAnswer: document.getElementById('qzAnswer').value,
+    }));
+  }
+
+  function restoreState() {
+    const s = getSavedState();
+
+    // Shared filter
+    if (Array.isArray(s.activeFilters) && s.activeFilters.length > 0) {
+      activeFilters = new Set(s.activeFilters);
+      document.querySelectorAll('.filter-option input[data-filter]').forEach(cb => {
+        cb.checked = activeFilters.has(cb.dataset.filter);
+      });
+    }
+    updateFilterBtn();
+
+    // Flashcard state
+    if (s.fcMode) {
+      fcMode = s.fcMode;
+      document.getElementById('fcModeRef').classList.toggle('active', fcMode === 'reference');
+      document.getElementById('fcModeVerse').classList.toggle('active', fcMode !== 'reference');
+    }
+    if (s.fcRandomized) {
+      fcRandomized = true;
+      document.getElementById('fcShuffle').classList.add('active');
+    }
+
+    // Quiz state
+    if (s.quizMode) {
+      quizMode = s.quizMode;
+      document.getElementById('qzModeRef').classList.toggle('active', quizMode === 'reference');
+      document.getElementById('qzModeVerse').classList.toggle('active', quizMode !== 'reference');
+    }
+    if (s.quizRandomized) {
+      quizRandomized = true;
+      document.getElementById('qzShuffle').classList.add('active');
+    }
+
+    // Rebuild with restored filter + shuffle state
+    buildFcCards();
+    buildQuizCards();
+    render();
+
+    if (typeof s.fcIndex === 'number') {
+      fcIndex = Math.max(0, Math.min(s.fcIndex, Math.max(0, fcCards.length - 1)));
+    }
+    if (typeof s.quizIndex === 'number') {
+      quizIndex = Math.max(0, Math.min(s.quizIndex, Math.max(0, quizCards.length - 1)));
+    }
+
+    // Active tab
+    const tab = s.activeTab || 'list';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+
+    // Render active tab content
+    if (tab === 'flashcards') {
+      renderFlashcard();
+    } else if (tab === 'quiz') {
+      renderQuiz(false);
+      if (s.quizAnswer) document.getElementById('qzAnswer').value = s.quizAnswer;
+    }
+  }
 
   async function loadCards() {
     cards = await api('GET', '/cards') || [];
@@ -725,7 +939,39 @@
     buildFcCards();
     render();
     updateFcProgress();
-    if (document.getElementById('tab-flashcards').classList.contains('active')) renderFlashcard();
+    restoreState();
+  }
+
+  // ── Filter helpers ──────────────────────────────────────────────
+  function filterCards(pool) {
+    if (activeFilters.size === 0) return [...pool];
+    return pool.filter(card => {
+      if (activeFilters.has('unseen') && !card.seen) return true;
+      if (activeFilters.has('seen') && card.seen) return true;
+      if (activeFilters.has('memorized') && card.memorized) return true;
+      if (activeFilters.has('unmemorized') && !card.memorized) return true;
+      return false;
+    });
+  }
+
+  function updateFilterBtn() {
+    const btn = document.getElementById('filterBtn');
+    const count = activeFilters.size;
+    btn.textContent = count > 0 ? `Filter (${count}) ▾` : 'Filter ▾';
+    btn.classList.toggle('active', count > 0);
+  }
+
+  function applyFilter() {
+    updateFilterBtn();
+    buildFcCards();
+    fcIndex = 0;
+    buildQuizCards();
+    quizIndex = 0;
+    render();
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    if (activeTab === 'flashcards') renderFlashcard();
+    else if (activeTab === 'quiz') renderQuiz();
+    saveState();
   }
 
   // ── List rendering ─────────────────────────────────────────────
@@ -741,20 +987,13 @@
   function render() {
     updateSummary();
     const list = document.getElementById('cardList');
-    const filtered =
-      activeFilter === 'all'         ? cards :
-      activeFilter === 'seen'        ? cards.filter(c => c.seen) :
-      activeFilter === 'unseen'      ? cards.filter(c => !c.seen) :
-      activeFilter === 'memorized'   ? cards.filter(c => c.memorized) :
-      activeFilter === 'unmemorized' ? cards.filter(c => !c.memorized) :
-      cards;
+    const filtered = filterCards(cards);
 
     if (filtered.length === 0) {
-      const label = { seen: 'Seen', unseen: 'Unseen', memorized: 'Memorized', unmemorized: 'Unmemorized' };
       list.innerHTML = `
         <div class="empty-state">
-          <p>${activeFilter === 'all' ? 'No cards yet.' : `No "${label[activeFilter]}" cards.`}</p>
-          <p>${activeFilter === 'all' ? 'Click "+ Add Card" to get started.' : 'Change the filter or add new cards.'}</p>
+          <p>${cards.length === 0 ? 'No cards yet.' : 'No cards match the current filter.'}</p>
+          <p>${cards.length === 0 ? 'Click "+ Add Card" to get started.' : 'Adjust the filter to see more cards.'}</p>
         </div>`;
       return;
     }
@@ -918,14 +1157,86 @@
     item.querySelector('.inline-front').focus();
   }
 
-  // ── Filter buttons ─────────────────────────────────────────────
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeFilter = btn.dataset.filter;
-      render();
+  // ── Filter dropdown ────────────────────────────────────────────
+  document.getElementById('filterBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('filterMenu').classList.toggle('hidden');
+  });
+
+  document.querySelectorAll('.filter-option input[data-filter]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) activeFilters.add(cb.dataset.filter);
+      else activeFilters.delete(cb.dataset.filter);
+      applyFilter();
     });
+  });
+
+  document.getElementById('filterAllBtn').addEventListener('click', () => {
+    activeFilters.clear();
+    document.querySelectorAll('.filter-option input[data-filter]').forEach(cb => cb.checked = false);
+    document.getElementById('filterMenu').classList.add('hidden');
+    applyFilter();
+  });
+
+  // ── Find – Flashcards ──────────────────────────────────────────
+  document.getElementById('fcFind').addEventListener('input', () => {
+    const q = document.getElementById('fcFind').value.toLowerCase();
+    const dd = document.getElementById('fcFindDropdown');
+    if (!q) { dd.classList.add('hidden'); return; }
+    const matches = fcCards.map((card, i) => ({ card, i }))
+      .filter(({ card }) => card.front.toLowerCase().includes(q));
+    if (!matches.length) { dd.classList.add('hidden'); return; }
+    dd.innerHTML = matches.slice(0, 12).map(({ card, i }) =>
+      `<div class="find-option" data-idx="${i}">${escHtml(card.front)}</div>`
+    ).join('');
+    dd.classList.remove('hidden');
+  });
+
+  document.getElementById('fcFindDropdown').addEventListener('click', e => {
+    const opt = e.target.closest('.find-option');
+    if (!opt) return;
+    fcIndex = Number(opt.dataset.idx);
+    renderFlashcard();
+    document.getElementById('fcFind').value = '';
+    document.getElementById('fcFindDropdown').classList.add('hidden');
+    saveState();
+  });
+
+  // ── Find – Quiz ────────────────────────────────────────────────
+  document.getElementById('qzFind').addEventListener('input', () => {
+    const q = document.getElementById('qzFind').value.toLowerCase();
+    const dd = document.getElementById('qzFindDropdown');
+    if (!q) { dd.classList.add('hidden'); return; }
+    const matches = quizCards.map((card, i) => ({ card, i }))
+      .filter(({ card }) => card.front.toLowerCase().includes(q));
+    if (!matches.length) { dd.classList.add('hidden'); return; }
+    dd.innerHTML = matches.slice(0, 12).map(({ card, i }) =>
+      `<div class="find-option" data-idx="${i}">${escHtml(card.front)}</div>`
+    ).join('');
+    dd.classList.remove('hidden');
+  });
+
+  document.getElementById('qzFindDropdown').addEventListener('click', e => {
+    const opt = e.target.closest('.find-option');
+    if (!opt) return;
+    quizIndex = Number(opt.dataset.idx);
+    renderQuiz();
+    document.getElementById('qzFind').value = '';
+    document.getElementById('qzFindDropdown').classList.add('hidden');
+    saveState();
+  });
+
+  // ── Close dropdowns on outside click ──────────────────────────
+  document.addEventListener('click', e => {
+    if (!document.getElementById('filterWrap').contains(e.target)) {
+      document.getElementById('filterMenu').classList.add('hidden');
+    }
+    if (!document.getElementById('fcFind').closest('.find-wrap').contains(e.target)) {
+      document.getElementById('fcFindDropdown').classList.add('hidden');
+    }
+    if (!document.getElementById('qzFind').closest('.find-wrap').contains(e.target)) {
+      document.getElementById('qzFindDropdown').classList.add('hidden');
+    }
   });
 
   // ── Tabs ───────────────────────────────────────────────────────
@@ -936,7 +1247,8 @@
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'flashcards') { buildFcCards(); renderFlashcard(); }
-      else if (btn.dataset.tab === 'quiz') initQuiz();
+      else if (btn.dataset.tab === 'quiz') { buildQuizCards(); renderQuiz(false); }
+      saveState();
     });
   });
 
@@ -948,7 +1260,7 @@
   let fcCards = [];
 
   function buildFcCards() {
-    let pool = [...cards];
+    let pool = filterCards(cards);
     if (fcRandomized) {
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1023,6 +1335,7 @@
     document.getElementById('fcModeVerse').classList.remove('active');
     fcIndex = 0;
     renderFlashcard();
+    saveState();
   });
 
   document.getElementById('fcModeVerse').addEventListener('click', () => {
@@ -1031,6 +1344,7 @@
     document.getElementById('fcModeRef').classList.remove('active');
     fcIndex = 0;
     renderFlashcard();
+    saveState();
   });
 
   document.getElementById('fcShuffle').addEventListener('click', () => {
@@ -1039,14 +1353,15 @@
     fcIndex = 0;
     buildFcCards();
     renderFlashcard();
+    saveState();
   });
 
   document.getElementById('fcPrev').addEventListener('click', () => {
-    if (fcIndex > 0) { fcIndex--; renderFlashcard(); }
+    if (fcIndex > 0) { fcIndex--; renderFlashcard(); saveState(); }
   });
 
   document.getElementById('fcNext').addEventListener('click', () => {
-    if (fcIndex < fcCards.length - 1) { fcIndex++; renderFlashcard(); }
+    if (fcIndex < fcCards.length - 1) { fcIndex++; renderFlashcard(); saveState(); }
   });
 
   document.getElementById('fcMarkSeen').addEventListener('click', async () => {
@@ -1063,8 +1378,8 @@
 
   document.addEventListener('keydown', e => {
     if (!document.getElementById('tab-flashcards').classList.contains('active')) return;
-    if (e.key === 'ArrowLeft') { if (fcIndex > 0) { fcIndex--; renderFlashcard(); } }
-    else if (e.key === 'ArrowRight') { if (fcIndex < fcCards.length - 1) { fcIndex++; renderFlashcard(); } }
+    if (e.key === 'ArrowLeft') { if (fcIndex > 0) { fcIndex--; renderFlashcard(); saveState(); } }
+    else if (e.key === 'ArrowRight') { if (fcIndex < fcCards.length - 1) { fcIndex++; renderFlashcard(); saveState(); } }
     else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); document.getElementById('fcCard').click(); }
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); document.getElementById('fcCard').click(); }
   });
@@ -1073,7 +1388,6 @@
   let quizMode = 'reference'; // 'reference' | 'verse'
   let quizIndex = 0;
   let quizCards = [];
-  let quizFilter = 'all';
   let quizRandomized = false;
   let recognizedSet = new Set();
 
@@ -1131,12 +1445,7 @@
   }
 
   function buildQuizCards() {
-    let pool =
-      quizFilter === 'seen'        ? cards.filter(c => c.seen) :
-      quizFilter === 'unseen'      ? cards.filter(c => !c.seen) :
-      quizFilter === 'memorized'   ? cards.filter(c => c.memorized) :
-      quizFilter === 'unmemorized' ? cards.filter(c => !c.memorized) :
-      [...cards];
+    let pool = filterCards(cards);
     if (quizRandomized) {
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1152,12 +1461,14 @@
     renderQuiz();
   }
 
-  function renderQuiz() {
+  function renderQuiz(clearAnswer = true) {
     const result = document.getElementById('qzResult');
     result.classList.remove('visible');
-    document.getElementById('qzAnswer').value = '';
-    document.getElementById('qzAnswer').disabled = false;
-    document.getElementById('qzCheck').style.display = '';
+    if (clearAnswer) {
+      document.getElementById('qzAnswer').value = '';
+      document.getElementById('qzAnswer').disabled = false;
+      document.getElementById('qzCheck').style.display = '';
+    }
 
     if (quizCards.length === 0) {
       document.getElementById('qzCounter').textContent = 'No cards';
@@ -1246,11 +1557,11 @@
   });
 
   document.getElementById('qzPrev').addEventListener('click', () => {
-    if (quizIndex > 0) { quizIndex--; renderQuiz(); }
+    if (quizIndex > 0) { quizIndex--; renderQuiz(); saveState(); }
   });
 
   document.getElementById('qzNext').addEventListener('click', () => {
-    if (quizIndex < cards.length - 1) { quizIndex++; renderQuiz(); }
+    if (quizIndex < quizCards.length - 1) { quizIndex++; renderQuiz(); saveState(); }
   });
 
   document.getElementById('qzModeRef').addEventListener('click', () => {
@@ -1258,6 +1569,7 @@
     document.getElementById('qzModeRef').classList.add('active');
     document.getElementById('qzModeVerse').classList.remove('active');
     renderQuiz();
+    saveState();
   });
 
   document.getElementById('qzModeVerse').addEventListener('click', () => {
@@ -1265,22 +1577,17 @@
     document.getElementById('qzModeVerse').classList.add('active');
     document.getElementById('qzModeRef').classList.remove('active');
     renderQuiz();
-  });
-
-  document.querySelectorAll('[data-qzfilter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-qzfilter]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      quizFilter = btn.dataset.qzfilter;
-      initQuiz();
-    });
+    saveState();
   });
 
   document.getElementById('qzShuffle').addEventListener('click', () => {
     quizRandomized = !quizRandomized;
     document.getElementById('qzShuffle').classList.toggle('active', quizRandomized);
     initQuiz();
+    saveState();
   });
+
+  document.getElementById('qzAnswer').addEventListener('input', saveState);
 
   // ── Nailed it! helpers ──────────────────────────────────────────
   function isNailedIt(userAnswer, correct) {
@@ -1292,21 +1599,18 @@
   function showNailedItText() {
     const el = document.createElement('div');
     el.textContent = 'Nailed it!';
-    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.7);' +
-      'font-size:5rem;font-weight:900;color:#d4a017;' +
-      'text-shadow:0 2px 12px rgba(0,0,0,0.25),0 0 40px rgba(212,160,23,0.5);' +
-      'pointer-events:none;z-index:10000;opacity:0;' +
-      'transition:opacity 0.25s ease,transform 0.25s ease;white-space:nowrap;';
+    el.style.cssText = 'position:fixed;top:50%;left:50%;' +
+      'font-size:5rem;font-weight:900;color:#f0c030;' +
+      'text-shadow:0 2px 12px rgba(0,0,0,0.25),0 0 40px rgba(240,192,48,0.6);' +
+      'pointer-events:none;z-index:10000;white-space:nowrap;' +
+      'animation:nailed-bounce 0.7s cubic-bezier(0.36,0.07,0.19,0.97) forwards;';
     document.body.appendChild(el);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.opacity = '1';
-      el.style.transform = 'translate(-50%,-50%) scale(1)';
-    }));
     setTimeout(() => {
+      el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
       el.style.opacity = '0';
-      el.style.transform = 'translate(-50%,-50%) scale(1.1)';
+      el.style.transform = 'translate(-50%, -50%) scale(1.1)';
       setTimeout(() => el.remove(), 300);
-    }, 1600);
+    }, 3700);
   }
 
   // ── Confetti ────────────────────────────────────────────────────
@@ -1331,7 +1635,7 @@
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
     }));
 
-    const end = performance.now() + 2000;
+    const end = performance.now() + 4000;
 
     function frame(now) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);

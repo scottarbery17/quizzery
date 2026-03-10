@@ -1,5 +1,9 @@
 // Shared auth + API helpers for all Quizzery pages
 (function () {
+  // Apply stored theme immediately to avoid flash of unstyled content
+  const _storedTheme = localStorage.getItem('dfb-theme');
+  if (_storedTheme) document.documentElement.setAttribute('data-theme', _storedTheme);
+
   let _token = localStorage.getItem('quizzery-token');
   let _user = localStorage.getItem('quizzery-user');
 
@@ -77,6 +81,7 @@
           <span class="sidebar-username" id="sidebarUser"></span>
           <a class="btn-view-profile" href="/profile">View Profile</a>
           <button class="btn-logout" id="sidebarLogout">Log out</button>
+          <button class="btn-theme-toggle" id="themeToggle"></button>
         </div>
       </aside>
     `);
@@ -90,6 +95,21 @@
 
     document.getElementById('sidebarUser').textContent = _user || '';
     document.getElementById('sidebarLogout').addEventListener('click', doLogout);
+
+    function _getEffectiveTheme() {
+      const stored = localStorage.getItem('dfb-theme');
+      if (stored) return stored;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function _applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('dfb-theme', theme);
+      document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+    }
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      _applyTheme(_getEffectiveTheme() === 'dark' ? 'light' : 'dark');
+    });
+    _applyTheme(_getEffectiveTheme());
 
     const sidebar = document.getElementById('sidebar');
     const hamburger = document.getElementById('hamburgerBtn');

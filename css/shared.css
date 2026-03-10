@@ -18,7 +18,53 @@
   --status-new-bg: #f0e8d0;
   --status-learning-bg: #d0e4f0;
   --status-done-bg: #d0ecd8;
+  --nailed-bg: #fff3cd;
+  --nailed-text: #b8860b;
+  --nailed-border: #d4a017;
+  --auth-overlay-bg: rgba(245, 240, 232, 0.97);
   --sidebar-width: 220px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1e1a14;
+    --surface: #2a2420;
+    --border: #3d3628;
+    --text: #e8e0d0;
+    --muted: #a09080;
+    --danger: #c47070;
+    --danger-hover: #b05c5c;
+    --status-new: #b0a080;
+    --status-learning: #6a9ab8;
+    --status-done: #6aaa7a;
+    --status-new-bg: #2a2618;
+    --status-learning-bg: #1a2838;
+    --status-done-bg: #1a2e22;
+    --nailed-bg: #2e2800;
+    --nailed-text: #d4a017;
+    --nailed-border: #b8860b;
+    --auth-overlay-bg: rgba(20, 17, 12, 0.97);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #1e1a14;
+  --surface: #2a2420;
+  --border: #3d3628;
+  --text: #e8e0d0;
+  --muted: #a09080;
+  --danger: #c47070;
+  --danger-hover: #b05c5c;
+  --status-new: #b0a080;
+  --status-learning: #6a9ab8;
+  --status-done: #6aaa7a;
+  --status-new-bg: #2a2618;
+  --status-learning-bg: #1a2838;
+  --status-done-bg: #1a2e22;
+  --nailed-bg: #2e2800;
+  --nailed-text: #d4a017;
+  --nailed-border: #b8860b;
+  --auth-overlay-bg: rgba(20, 17, 12, 0.97);
 }
 
 body {
@@ -174,6 +220,19 @@ button:active { transform: scale(0.97); }
 
 .btn-view-profile:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
+.btn-theme-toggle {
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  align-self: flex-start;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-theme-toggle:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
 /* ── Page content ─────────────────────────────────────────────── */
 .page-content {
   flex: 1;
@@ -229,7 +288,7 @@ button:active { transform: scale(0.97); }
 .auth-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(245, 240, 232, 0.97);
+  background: var(--auth-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
